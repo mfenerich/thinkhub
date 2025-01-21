@@ -1,8 +1,10 @@
-import os
 import base64
-from typing import AsyncGenerator, Union
-from openai import AsyncOpenAI
+import os
+from collections.abc import AsyncGenerator
+from typing import Union
+
 import tiktoken
+from openai import AsyncOpenAI
 
 from thinkhub.chat.base import ChatServiceInterface
 
@@ -33,7 +35,11 @@ class OpenAIChatService(ChatServiceInterface):
         Ensures that the total tokens in the messages context do not exceed the model's maximum token limit.
         Removes the oldest user messages as needed, keeping the system prompt intact.
         """
-        total_tokens = sum(len(self.model_encoding.encode(m["content"])) for m in self.messages if "content" in m)
+        total_tokens = sum(
+            len(self.model_encoding.encode(m["content"]))
+            for m in self.messages
+            if "content" in m
+        )
 
         while total_tokens > self.MAX_TOKENS:
             # Remove the second message to preserve the system prompt
@@ -90,7 +96,9 @@ class OpenAIChatService(ChatServiceInterface):
             # Add user text input to context and API payload
             self.messages.append({"role": "user", "content": input_data})
             api_payload["messages"] = self.messages
-        elif isinstance(input_data, list) and all(isinstance(item, dict) and "image_path" in item for item in input_data):
+        elif isinstance(input_data, list) and all(
+            isinstance(item, dict) and "image_path" in item for item in input_data
+        ):
             # Process each dictionary in the list and encode images as base64
             image_messages = []
 
@@ -98,7 +106,10 @@ class OpenAIChatService(ChatServiceInterface):
                 image_path = item["image_path"]  # Extract image path
                 base64_image = self.encode_image(image_path)  # Encode image to base64
                 image_messages.append(
-                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}}
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"},
+                    }
                 )
 
             # Add image content to API payload
@@ -106,13 +117,18 @@ class OpenAIChatService(ChatServiceInterface):
                 {
                     "role": "user",
                     "content": [
-                        {"type": "text", "text": "There is an IT question or an IT problem in these images. If it is a code challenge, fully code it. Analyze it, come up with a solution and write a response."},
+                        {
+                            "type": "text",
+                            "text": "There is an IT question or an IT problem in these images. If it is a code challenge, fully code it. Analyze it, come up with a solution and write a response.",
+                        },
                         *image_messages,
                     ],
                 }
             )
         else:
-            raise ValueError("Invalid input_data type. Must be a string or a list of dictionaries with 'image_path' keys.")
+            raise ValueError(
+                "Invalid input_data type. Must be a string or a list of dictionaries with 'image_path' keys."
+            )
 
         # Manage token limits
         self._check_and_manage_token_limit()

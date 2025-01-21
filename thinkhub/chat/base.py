@@ -1,12 +1,14 @@
 from abc import ABC, abstractmethod
-from typing import AsyncGenerator, Union
+from collections.abc import AsyncGenerator
+from typing import Union
+
 
 class ChatServiceInterface(ABC):
     @abstractmethod
     async def stream_chat_response(
         self,
         input_data: Union[str, list[dict[str, str]]],
-        system_prompt: str = "You are a helpful assistant."
+        system_prompt: str = "You are a helpful assistant.",
     ) -> AsyncGenerator[str, None]:
         """
         Stream responses from a chat service.

@@ -1,10 +1,13 @@
-import yaml
 import os
+
+import yaml
 from decouple import config as env_config
 
 
 class ConfigLoader:
-    def __init__(self, default_path="default_config.yaml", user_path="user_config.yaml"):
+    def __init__(
+        self, default_path="default_config.yaml", user_path="user_config.yaml"
+    ):
         self.default_path = default_path
         self.user_path = user_path
         self.config = self.load_config()
@@ -26,7 +29,7 @@ class ConfigLoader:
     @staticmethod
     def _load_yaml(file_path):
         """Load a YAML file."""
-        with open(file_path, "r") as file:
+        with open(file_path) as file:
             return yaml.safe_load(file)
 
     @staticmethod
@@ -41,5 +44,9 @@ class ConfigLoader:
 
     def _override_with_env(self, config):
         """Override specific settings with environment variables."""
-        config["openai"]["api_key"] = env_config("OPENAI_API_KEY", default=config["openai"].get("api_key"))
-        config["google"]["api_key"] = env_config("GOOGLE_API_KEY", default=config["google"].get("api_key"))
+        config["openai"]["api_key"] = env_config(
+            "OPENAI_API_KEY", default=config["openai"].get("api_key")
+        )
+        config["google"]["api_key"] = env_config(
+            "GOOGLE_API_KEY", default=config["google"].get("api_key")
+        )

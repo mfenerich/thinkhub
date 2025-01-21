@@ -1,5 +1,7 @@
 import os
+
 from google.cloud import speech_v1
+
 from thinkhub.transcription.base import TranscriptionServiceInterface
 
 
@@ -20,10 +22,14 @@ class GoogleTranscriptionService(TranscriptionServiceInterface):
         """Load GOOGLE_APPLICATION_CREDENTIALS from .env."""
         google_creds = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
         if not google_creds:
-            raise ValueError("GOOGLE_APPLICATION_CREDENTIALS environment variable is not set.")
+            raise ValueError(
+                "GOOGLE_APPLICATION_CREDENTIALS environment variable is not set."
+            )
         if not os.path.exists(google_creds):
-            raise FileNotFoundError(f"GOOGLE_APPLICATION_CREDENTIALS file not found: {google_creds}")
-        
+            raise FileNotFoundError(
+                f"GOOGLE_APPLICATION_CREDENTIALS file not found: {google_creds}"
+            )
+
         # Set the environment variable for Google Cloud
         os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = google_creds
 
@@ -55,8 +61,7 @@ class GoogleTranscriptionService(TranscriptionServiceInterface):
 
             # Extract transcripts
             transcription = "".join(
-                result.alternatives[0].transcript
-                for result in response.results
+                result.alternatives[0].transcript for result in response.results
             )
             return transcription or "No transcription available."
         except Exception as e:
