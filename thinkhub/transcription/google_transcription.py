@@ -19,7 +19,7 @@ class GoogleTranscriptionService(TranscriptionServiceInterface):
         # Load GOOGLE_APPLICATION_CREDENTIALS from .env
         self._load_google_credentials()
 
-    def ls_load_google_credentials(self):
+    def _load_google_credentials(self):
         """Load GOOGLE_APPLICATION_CREDENTIALS from .env."""
         google_creds = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
         if not google_creds:
