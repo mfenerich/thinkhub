@@ -14,7 +14,8 @@ class ChatServiceInterface(ABC):
         Stream responses from a chat service.
 
         Args:
-            input_data (Union[str, list[dict[str, str]]]): The user input, either as plain text or a list of dictionaries containing image paths.
+            input_data (Union[str, list[dict[str, str]]]): The user input,
+            either as plain text or a list of dictionaries containing image paths.
             system_prompt (str): A system-level prompt to guide the assistant's behavior.
 
         Yields:

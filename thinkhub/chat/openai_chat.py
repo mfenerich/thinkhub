@@ -13,6 +13,7 @@ class OpenAIChatService(ChatServiceInterface):
     def __init__(self, model: str = "gpt-4o"):
         """
         Initializes your ChatGPTService with a hypothetical AsyncOpenAI client.
+
         Adjust to match whatever async library you are using.
         """
         api_key = os.getenv("CHATGPT_API_KEY")
@@ -33,6 +34,7 @@ class OpenAIChatService(ChatServiceInterface):
     def _check_and_manage_token_limit(self):
         """
         Ensures that the total tokens in the messages context do not exceed the model's maximum token limit.
+
         Removes the oldest user messages as needed, keeping the system prompt intact.
         """
         total_tokens = sum(
@@ -69,10 +71,12 @@ class OpenAIChatService(ChatServiceInterface):
     ) -> AsyncGenerator[str, None]:
         """
         Streams the ChatGPT response given input data, which can be text or an image (as base64).
+
         Yields partial responses (tokens) as they arrive.
 
         Args:
-            input_data (Union[str, dict]): The user input, either as plain text or a dictionary containing an image path.
+            input_data (Union[str, dict]): The user input, either as plain text or a
+            dictionary containing an image path.
             system_prompt (str): The system's initial prompt to guide the assistant's behavior.
 
         Yields:
@@ -127,7 +131,7 @@ class OpenAIChatService(ChatServiceInterface):
             )
         else:
             raise ValueError(
-                "Invalid input_data type. Must be a string or a list of dictionaries with 'image_path' keys."
+                "Invalid input_data type. Must be a string or a list of dictionaries with 'image_path' keys.",
             )
 
         # Manage token limits
@@ -136,7 +140,8 @@ class OpenAIChatService(ChatServiceInterface):
         try:
             response_aiter = await self.openai.chat.completions.create(**api_payload)
 
-            full_response_chunks = []  # To collect chunks for constructing full_response
+            # To collect chunks for constructing full_response
+            full_response_chunks = []
             async for chunk in response_aiter:
                 if not chunk.choices:
                     continue

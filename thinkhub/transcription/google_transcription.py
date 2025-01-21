@@ -9,6 +9,7 @@ class GoogleTranscriptionService(TranscriptionServiceInterface):
     def __init__(self, sample_rate=24000, bucket_name="speechmarcel"):
         """
         Initialize GoogleTranscriptionService with sample rate and bucket name.
+
         Sets up Google Application Credentials from the .env file.
         """
         self.client = None
