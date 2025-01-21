@@ -1,5 +1,5 @@
-from .base import ChatServiceInterface  # Optionally re-export
-from .openai_chat import OpenAIChatService  # If you want direct import usage
+from .base import ChatServiceInterface
+from .openai_chat import OpenAIChatService
 
 def get_chat_service(
     provider: str = "openai", 
