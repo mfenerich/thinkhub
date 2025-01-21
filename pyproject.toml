@@ -1,0 +1,39 @@
+[tool.poetry]
+name = "thinkhub"
+version = "0.1.0"
+description = ""
+authors = ["Marcel Fenerich <marcel@feneri.ch>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+decouple = "^0.0.7"
+
+[tool.poetry.dev-dependencies]
+coverage = "7.6.1"
+pre-commit = "3.8.0"
+pytest = "8.3.2"
+pytest-cov = "5.0.0"
+ruff = "0.6.1"
+
+[tool.ruff]
+exclude = [".venv"]
+
+[tool.ruff.lint]
+select = [
+    "F", # Pyflakes
+    "E", # pycodestyle
+    "W", # pycodestyle
+    "I", # isort
+    "D",   # pydocstyle
+    "UP",  # pyupgrade
+    "ASYNC", # flake8-async
+    "RUF",  # Ruff-specific rules
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "pep257"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
