@@ -27,14 +27,14 @@ jobs:
           echo "version=$version" >> $GITHUB_ENV
           echo "::set-output name=version::$version"
 
-      - name: Fetch Main Branch
+      - name: Fetch Main Branch into Detached HEAD
         run: |
-          git fetch origin main:main
+          git fetch origin main:refs/remotes/origin/main
+          git checkout origin/main
 
       - name: Read Version from Main Branch
         id: main_version
         run: |
-          git checkout main
           version=$(grep -Po 'version\s*=\s*"\K[^"]+' pyproject.toml)
           echo "Main branch version: $version"
           echo "version=$version" >> $GITHUB_ENV
@@ -49,6 +49,10 @@ jobs:
           else
             echo "Version has changed. Proceeding with release."
           fi
+
+      - name: Checkout Current Branch
+        run: |
+          git checkout -
 
       - name: Create Version Tag
         run: |
