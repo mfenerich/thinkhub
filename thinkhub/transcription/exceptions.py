@@ -1,10 +1,7 @@
-class TranscriptionServiceError(Exception):
+from thinkhub.exceptions import BaseServiceError
+
+
+class TranscriptionServiceError(BaseServiceError):
     """Base exception for transcription service related errors."""
-
-    pass
-
-
-class ProviderNotFoundError(TranscriptionServiceError):
-    """Raised when a requested provider is not found."""
 
     pass

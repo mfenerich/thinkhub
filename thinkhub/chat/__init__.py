@@ -1,8 +1,10 @@
 import logging
 from typing import Dict, Type
 
+from thinkhub.exceptions import ProviderNotFoundError
+
 from .base import ChatServiceInterface
-from .exceptions import ChatServiceError, ProviderNotFoundError
+from .exceptions import ChatServiceError
 from .openai_chat import OpenAIChatService
 
 logger = logging.getLogger(__name__)

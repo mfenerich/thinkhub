@@ -1,7 +1,7 @@
-class ChatServiceError(Exception):
-    """Base exception for transcription service related errors."""
-    pass
+from thinkhub.exceptions import BaseServiceError
 
-class ProviderNotFoundError(ChatServiceError):
-    """Raised when a requested provider is not found."""
+
+class ChatServiceError(BaseServiceError):
+    """Base exception for chat service related errors."""
+
     pass

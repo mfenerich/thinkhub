@@ -1,10 +1,11 @@
 import logging
 from typing import Dict, Type
 
+from thinkhub.exceptions import ProviderNotFoundError
 from thinkhub.transcription.google_transcription import GoogleTranscriptionService
 
 from .base import TranscriptionServiceInterface
-from .exceptions import ProviderNotFoundError, TranscriptionServiceError
+from .exceptions import TranscriptionServiceError
 
 logger = logging.getLogger(__name__)
 
