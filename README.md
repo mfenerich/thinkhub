@@ -52,7 +52,7 @@ To use a transcription service like Google:
 from thinkhub.transcription import get_transcription_service
 
 transcription_service = get_transcription_service("google")
-result = await transcription_service.transcribe("path/to/audio.wav")
+result = await transcription_service.transcribe("path/to/audio.flac")
 print(result)
 ```
 
