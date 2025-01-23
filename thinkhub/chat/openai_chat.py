@@ -12,9 +12,10 @@ from thinkhub.chat.base import ChatServiceInterface
 class OpenAIChatService(ChatServiceInterface):
     def __init__(self, model: str = "gpt-4o"):
         """
-        Initializes your ChatGPTService with a hypothetical AsyncOpenAI client.
+        Initializes the OpenAIChatService with a hypothetical AsyncOpenAI client.
 
-        Adjust to match whatever async library you are using.
+        Args:
+            model (str): Model name to use for chat.
         """
         api_key = os.getenv("CHATGPT_API_KEY")
 
@@ -43,10 +44,14 @@ class OpenAIChatService(ChatServiceInterface):
             if "content" in m
         )
 
-        while total_tokens > self.MAX_TOKENS:
+        while total_tokens > self.MAX_TOKENS and len(self.messages) > 1:
             # Remove the second message to preserve the system prompt
-            removed_message = self.messages.pop(1)
-            total_tokens -= len(self.model_encoding.encode(removed_message["content"]))
+            self.messages.pop(1)
+            total_tokens = sum(
+                len(self.model_encoding.encode(m["content"]))
+                for m in self.messages
+                if "content" in m
+            )
 
     def encode_image(self, image_path: str) -> str:
         """
@@ -123,7 +128,7 @@ class OpenAIChatService(ChatServiceInterface):
                     "content": [
                         {
                             "type": "text",
-                            "text": "There is an IT question or an IT problem in these images. If it is a code challenge, fully code it. Analyze it, come up with a solution and write a response.",
+                            "text": "Analyze the following images and provide a response.",
                         },
                         *image_messages,
                     ],
