@@ -1,4 +1,12 @@
-# tests/transcription/test_google_transcription.py
+"""
+Unit tests for the GoogleTranscriptionService.
+
+These tests cover various scenarios, including:
+- Missing or invalid credentials.
+- Initialization errors.
+- File not found errors.
+- Successful and failed transcription jobs.
+"""
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -16,9 +24,7 @@ from thinkhub.transcription.google_transcription import GoogleTranscriptionServi
 
 @pytest.fixture
 def mock_env_creds(monkeypatch):
-    """
-    Mocks the GOOGLE_APPLICATION_CREDENTIALS env var to a fake path.
-    """
+    """Mock the GOOGLE_APPLICATION_CREDENTIALS env var to a fake path."""
     monkeypatch.setenv("GOOGLE_APPLICATION_CREDENTIALS", "/fake/path/to/creds.json")
 
 
@@ -26,6 +32,7 @@ def mock_env_creds(monkeypatch):
 def mock_credentials_file():
     """
     Patches os.path.exists so that the Google creds file is always treated as existing.
+
     By default, we return True for all paths so that tests pass initialization.
     Tests can override or patch again if they want to simulate a missing audio file, etc.
     """
@@ -36,6 +43,8 @@ def mock_credentials_file():
 
 @pytest.mark.asyncio
 class TestGoogleTranscriptionService:
+    """Test cases for the GoogleTranscriptionService class."""
+
     @pytest.mark.usefixtures("mock_credentials_file")
     async def test_missing_credentials_raises_error(self, monkeypatch):
         """Test MissingGoogleCredentialsError if GOOGLE_APPLICATION_CREDENTIALS is not set."""
@@ -47,6 +56,7 @@ class TestGoogleTranscriptionService:
     async def test_invalid_credentials_path_raises_error(self):
         """
         Test InvalidGoogleCredentialsPathError if the file doesn't exist.
+
         Here, we override the default fixture's behavior to force os.path.exists=False.
         """
         with patch("os.path.exists", return_value=False):
@@ -61,6 +71,7 @@ class TestGoogleTranscriptionService:
     async def test_initialize_client_failure(self, mock_client_class):
         """
         Test that ClientInitializationError is raised if SpeechAsyncClient() fails.
+
         We patch the constructor so it raises an exception.
         """
         mock_client_class.side_effect = Exception("Init fail")
@@ -81,6 +92,7 @@ class TestGoogleTranscriptionService:
     async def test_transcribe_file_not_found(self, mock_client_class):
         """
         Test AudioFileNotFoundError is raised for a non-existent local audio file.
+
         We override os.path.exists so the creds file is found, but the audio file is not.
         """
 
@@ -105,9 +117,7 @@ class TestGoogleTranscriptionService:
         autospec=True,
     )
     async def test_transcription_job_error(self, mock_client_class, mock_aiofiles_open):
-        """
-        Test that a generic exception during recognition raises TranscriptionJobError.
-        """
+        """Test that a generic exception during recognition raises TranscriptionJobError."""
         # Set up the mock instance
         mock_client_instance = MagicMock()
         # Mock the async recognize call to raise an exception
@@ -135,9 +145,7 @@ class TestGoogleTranscriptionService:
         autospec=True,
     )
     async def test_transcription_success(self, mock_client_class, mock_aiofiles_open):
-        """
-        Test a successful transcription scenario.
-        """
+        """Test a successful transcription scenario."""
         # Set up the mock instance with a normal return for recognize()
         mock_client_instance = MagicMock()
         mock_client_instance.recognize = AsyncMock()
