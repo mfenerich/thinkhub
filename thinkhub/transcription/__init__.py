@@ -1,3 +1,10 @@
+"""
+This package provides transcription services for handling audio-to-text operations.
+
+It supports multiple providers and includes functionality for registering, retrieving,
+and managing transcription services.
+"""
+
 import logging
 from typing import Dict, Type
 
@@ -15,13 +22,15 @@ _TRANSCRIPTION_SERVICES: Dict[str, Type[TranscriptionServiceInterface]] = {
 
 
 def register_transcription_service(name: str):
-    """Decorator to register a transcription service."""
+    """Decorate to register a transcription service."""
 
     def decorator(service_class: Type[TranscriptionServiceInterface]):
         name_lower = name.lower()
         if name_lower in _TRANSCRIPTION_SERVICES:
             logger.warning(
-                f"Overriding transcription service: {name}. Previous service will be replaced."
+                "Overriding transcription service: %s. "
+                "Previous service will be replaced.",
+                name,
             )
         _TRANSCRIPTION_SERVICES[name_lower] = service_class
         logger.info(f"Registered transcription service: {name}")
@@ -31,7 +40,7 @@ def register_transcription_service(name: str):
 
 
 def get_transcription_service(provider: str, **kwargs) -> TranscriptionServiceInterface:
-    """Returns the appropriate transcription service.
+    """Return the appropriate transcription service.
 
     Args:
         provider: Name of the transcription service provider.
@@ -53,5 +62,5 @@ def get_transcription_service(provider: str, **kwargs) -> TranscriptionServiceIn
 
 
 def get_available_providers() -> list[str]:
-    """Returns a list of available transcription providers."""
+    """Return a list of available transcription providers."""
     return list(_TRANSCRIPTION_SERVICES.keys())
