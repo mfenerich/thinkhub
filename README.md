@@ -17,7 +17,7 @@ ThinkHub is a Python-based framework that provides a unified interface for inter
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/mfenerich/thinkhub.git
+   git clone https://github.com/your-username/thinkhub.git
    cd thinkhub
    ```
 
@@ -36,51 +36,89 @@ ThinkHub is a Python-based framework that provides a unified interface for inter
 
 ## Usage
 
-### **Configuration**
-ThinkHub uses YAML configuration files, merged and overridden by environment variables.
-
-Example usage of `ConfigLoader`:
+### **Chat Services**
+To use a chat service like OpenAI:
 ```python
-from thinkhub.config_loader import ConfigLoader
+from thinkhub.chat import get_chat_service
 
-config = ConfigLoader().load()
-print(config)
+chat_service = get_chat_service("openai", model="gpt-4o")
+async for response in chat_service.stream_chat_response("Hello, ThinkHub!"):
+    print(response)
 ```
 
-### **Chat Plugins**
-To use the OpenAI Chat API:
+### **Transcription Services**
+To use a transcription service like Google:
 ```python
-from thinkhub.chat.openai_chat import OpenAIChat
+from thinkhub.transcription import get_transcription_service
 
-chat = OpenAIChat(api_key="your_openai_api_key")
-response = chat.send_message("Hello, ThinkHub!")
-print(response)
-```
-
-### **Transcription Plugins**
-To use the Google Transcription API:
-```python
-from thinkhub.transcription.google_transcription import GoogleTranscription
-
-transcriber = GoogleTranscription(api_key="your_google_api_key")
-result = transcriber.transcribe("path/to/audio.flac")
+transcription_service = get_transcription_service("google")
+result = await transcription_service.transcribe("path/to/audio.wav")
 print(result)
 ```
 
 ### **Registering Custom Plugins**
-Users can create their own services by extending the base classes:
 
-Example for a custom chat plugin:
+ThinkHub allows users to create and register their own services by extending the base classes and utilizing the factory functions (`get_chat_service` and `get_transcription_service`).
+
+#### Example: Registering a Custom Chat Service
+
+To register a custom chat service, extend the base class `ChatServiceInterface` and implement its methods:
+
 ```python
-from thinkhub.chat.base import BaseChat
+from thinkhub.chat.base import ChatServiceInterface
+from thinkhub.chat import register_chat_service
 
-class CustomChat(BaseChat):
-    def send_message(self, message: str) -> str:
-        return f"Custom response to: {message}"
+class CustomChatService(ChatServiceInterface):
+    """A custom implementation of a chat service."""
+    
+    def __init__(self, **kwargs):
+        self.custom_param = kwargs.get("custom_param", "default_value")
+    
+    async def stream_chat_response(self, input_data, system_prompt=""):
+        yield f"Custom response to: {input_data}"
 
-# Register and use
-chat = CustomChat()
-print(chat.send_message("Hello!"))
+# Register the service
+register_chat_service("custom", CustomChatService)
+```
+
+#### Usage
+Once registered, the custom service can be retrieved via `get_chat_service`:
+
+```python
+from thinkhub.chat import get_chat_service
+
+chat_service = get_chat_service("custom", custom_param="example")
+async for response in chat_service.stream_chat_response("Hello!"):
+    print(response)
+```
+
+#### Example: Registering a Custom Transcription Service
+
+Similarly, transcription services can be registered by extending the `TranscriptionServiceInterface`:
+
+```python
+from thinkhub.transcription.base import TranscriptionServiceInterface
+from thinkhub.transcription import register_transcription_service
+
+class CustomTranscriptionService(TranscriptionServiceInterface):
+    """A custom implementation of a transcription service."""
+    
+    async def transcribe(self, file_path):
+        return f"Transcription for {file_path}"
+
+# Register the service
+register_transcription_service("custom", CustomTranscriptionService)
+```
+
+#### Usage
+The custom transcription service can then be retrieved via `get_transcription_service`:
+
+```python
+from thinkhub.transcription import get_transcription_service
+
+transcription_service = get_transcription_service("custom")
+result = await transcription_service.transcribe("path/to/file")
+print(result)
 ```
 
 ---
