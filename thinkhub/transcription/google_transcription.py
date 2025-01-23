@@ -84,11 +84,10 @@ class GoogleTranscriptionService(TranscriptionServiceInterface):
             return transcription or "No transcription available."
 
         except Exception as e:
-            # Raise a custom transcription job error
             raise TranscriptionJobError(f"Transcription failed: {e}") from e
 
     async def close(self):
         """Close the gRPC client."""
         if self.client:
             await self.client.close()
-            self.client = None  # Important to avoid resource warnings
+            self.client = None
