@@ -4,14 +4,16 @@ permissions:
   contents: write
 
 on:
-  push:
-    tags:
-      - "v*"
+  # Trigger when a pull request is closed (merged) into main
+  pull_request:
+    branches:
+      - main
+    types:
+      - closed
 
 jobs:
   release:
     runs-on: ubuntu-22.04
-
     outputs:
       version: ${{ steps.read_version.outputs.version }}
 
@@ -24,19 +26,29 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Read Version from Tag
+      - name: Ensure PR was merged
+        if: ${{ github.event.pull_request.merged != true }}
+        run: |
+          echo "Pull request was closed without merging. Exiting..."
+          exit 1
+
+      - name: Read Version from pyproject.toml
         id: read_version
         run: |
-          # Extract the version from the tag name
-          version="${GITHUB_REF#refs/tags/v}"
-          echo "Tag version: $version"
+          # Grab the version value from pyproject.toml:
+          version=$(grep -Po 'version\s*=\s*"\K[^"]+' pyproject.toml)
+          echo "Version read from pyproject.toml: $version"
+
+          # Expose 'version' as an output for subsequent steps/jobs:
           echo "version=$version" >> $GITHUB_OUTPUT
 
       - name: Create GitHub Release
+        if: ${{ success() }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           version="${{ steps.read_version.outputs.version }}"
+          # Create a release with the version from pyproject.toml
           gh release create "v$version" \
             --repo="$GITHUB_REPOSITORY" \
             --title="${GITHUB_REPOSITORY#*/} $version" \
