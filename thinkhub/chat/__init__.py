@@ -1,3 +1,12 @@
+"""
+This package provides utilities for managing and registering chat services.
+
+It includes:
+- A decorator for registering chat services dynamically.
+- Methods for retrieving registered services.
+- Support for multiple chat service providers.
+"""
+
 import logging
 from typing import Dict, Type
 
@@ -15,7 +24,7 @@ _CHAT_SERVICES: Dict[str, Type[ChatServiceInterface]] = {
 
 
 def register_chat_service(name: str):
-    """Decorator to register a chat service."""
+    """Register a chat service dynamically."""
 
     def decorator(service_class: Type[ChatServiceInterface]):
         name_lower = name.lower()
@@ -31,7 +40,7 @@ def register_chat_service(name: str):
 
 
 def get_chat_service(provider: str, **kwargs) -> ChatServiceInterface:
-    """Returns the appropriate chat service.
+    """Get the appropriate chat service.
 
     Args:
         provider: Name of the chat service provider.
@@ -52,5 +61,5 @@ def get_chat_service(provider: str, **kwargs) -> ChatServiceInterface:
 
 
 def get_available_chat_providers() -> list[str]:
-    """Returns a list of available chat providers."""
+    """Get a list of available chat providers."""
     return list(_CHAT_SERVICES.keys())
