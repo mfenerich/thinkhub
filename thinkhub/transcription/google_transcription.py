@@ -1,6 +1,7 @@
 import os
 from typing import Optional
 
+import aiofiles
 from google.cloud import speech_v1
 
 from thinkhub.transcription.base import TranscriptionServiceInterface
@@ -109,8 +110,9 @@ class GoogleTranscriptionService(TranscriptionServiceInterface):
             raise AudioFileNotFoundError(f"Audio file not found: {file_path}")
 
         try:
-            with open(file_path, "rb") as f:
-                audio_content = f.read()
+            # Use aiofiles for non-blocking file operations
+            async with aiofiles.open(file_path, "rb") as f:
+                audio_content = await f.read()
 
             audio = speech_v1.RecognitionAudio(content=audio_content)
             config = speech_v1.RecognitionConfig(

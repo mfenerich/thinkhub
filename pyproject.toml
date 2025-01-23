@@ -9,6 +9,7 @@ readme = "README.md"
 python = "^3.11"
 decouple = "^0.0.7"
 google-cloud-speech = "^2.30.0"
+aiofiles = "^24.1.0"
 
 [tool.poetry.dev-dependencies]
 coverage = "7.6.1"

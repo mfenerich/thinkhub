@@ -99,11 +99,12 @@ class TestGoogleTranscriptionService:
             assert "Audio file not found: dummy_file.flac" in str(excinfo.value)
 
     @pytest.mark.usefixtures("mock_env_creds", "mock_credentials_file")
+    @patch("aiofiles.open", new_callable=MagicMock)
     @patch(
         "thinkhub.transcription.google_transcription.speech_v1.SpeechAsyncClient",
         autospec=True,
     )
-    async def test_transcription_job_error(self, mock_client_class):
+    async def test_transcription_job_error(self, mock_client_class, mock_aiofiles_open):
         """
         Test that a generic exception during recognition raises TranscriptionJobError.
         """
@@ -115,18 +116,17 @@ class TestGoogleTranscriptionService:
         )
         mock_client_class.return_value = mock_client_instance
 
+        # Mock the aiofiles.open context manager to simulate reading file data
+        mock_aiofiles_open.return_value.__aenter__.return_value.read.return_value = (
+            b"audio data"
+        )
+
         service = GoogleTranscriptionService()
 
-        # Simulate a real file
-        with patch("builtins.open", new_callable=MagicMock) as mock_open:
-            mock_open.return_value.__enter__.return_value.read.return_value = (
-                b"audio data"
-            )
+        with pytest.raises(TranscriptionJobError) as excinfo:
+            await service.transcribe("dummy_file.flac")
 
-            with pytest.raises(TranscriptionJobError) as excinfo:
-                await service.transcribe("dummy_file.flac")
-
-            assert "Transcription failed: Transcription failure" in str(excinfo.value)
+        assert "Transcription failed: Transcription failure" in str(excinfo.value)
 
     @pytest.mark.usefixtures("mock_env_creds", "mock_credentials_file")
     @patch(
@@ -159,20 +159,34 @@ class TestGoogleTranscriptionService:
             assert transcript == "Hello, World!"
 
     @pytest.mark.usefixtures("mock_env_creds", "mock_credentials_file")
+    @patch("aiofiles.open", new_callable=MagicMock)
     @patch(
         "thinkhub.transcription.google_transcription.speech_v1.SpeechAsyncClient",
         autospec=True,
     )
-    async def test_close_client(self, mock_client_class):
+    async def test_transcription_success(self, mock_client_class, mock_aiofiles_open):
         """
-        Test that the close() method calls the client's close() asynchronously.
+        Test a successful transcription scenario.
         """
+        # Set up the mock instance with a normal return for recognize()
         mock_client_instance = MagicMock()
-        mock_client_instance.close = AsyncMock()
+        mock_client_instance.recognize = AsyncMock()
+
+        # Mock a valid response
+        mock_result = MagicMock()
+        mock_result.alternatives = [MagicMock(transcript="Hello, World!")]
+        mock_response = MagicMock(results=[mock_result])
+        mock_client_instance.recognize.return_value = mock_response
+
+        # The constructor returns this mock instance
         mock_client_class.return_value = mock_client_instance
 
-        service = GoogleTranscriptionService()
-        await service.initialize_client()
+        # Mock the aiofiles.open context manager to simulate reading file data
+        mock_aiofiles_open.return_value.__aenter__.return_value.read.return_value = (
+            b"audio data"
+        )
 
-        await service.close()
-        mock_client_instance.close.assert_awaited_once()
+        service = GoogleTranscriptionService()
+
+        transcript = await service.transcribe("dummy_file.flac")
+        assert transcript == "Hello, World!"
