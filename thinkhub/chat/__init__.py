@@ -1,10 +1,8 @@
 from .base import ChatServiceInterface
 from .openai_chat import OpenAIChatService
 
-def get_chat_service(
-    provider: str = "openai", 
-    **kwargs
-) -> ChatServiceInterface:
+
+def get_chat_service(provider: str = "openai", **kwargs) -> ChatServiceInterface:
     """
     Returns the appropriate chat service based on the 'provider' argument.
     kwargs are passed through to the service constructor.

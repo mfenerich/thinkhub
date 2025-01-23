@@ -3,6 +3,7 @@ import os
 from google.cloud import speech_v1
 
 from thinkhub.transcription.base import TranscriptionServiceInterface
+from thinkhub.transcription.exceptions import TranscriptionServiceError
 
 
 class GoogleTranscriptionService(TranscriptionServiceInterface):
@@ -35,8 +36,13 @@ class GoogleTranscriptionService(TranscriptionServiceInterface):
         os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = google_creds
 
     async def initialize_client(self):
-        """Initialize SpeechAsyncClient within the correct event loop."""
-        self.client = speech_v1.SpeechAsyncClient()
+        """Initialize SpeechAsyncClient."""
+        try:
+            self.client = speech_v1.SpeechAsyncClient()
+        except Exception as e:
+            raise TranscriptionServiceError(
+                f"Failed to initialize Google Speech client: {e}"
+            ) from e
 
     async def transcribe(self, file_path: str) -> str:
         """Asynchronously transcribe audio."""
@@ -52,7 +58,7 @@ class GoogleTranscriptionService(TranscriptionServiceInterface):
 
             audio = speech_v1.RecognitionAudio(content=audio_content)
             config = speech_v1.RecognitionConfig(
-                encoding=speech_v1.RecognitionConfig.AudioEncoding.FLAC,
+                encoding=speech_v1.RecognitionConfig.AudioEncoding.FLAC,  # Important: Ensure correct encoding
                 sample_rate_hertz=self.rate,
                 language_code="en-US",
             )
@@ -66,9 +72,10 @@ class GoogleTranscriptionService(TranscriptionServiceInterface):
             )
             return transcription or "No transcription available."
         except Exception as e:
-            return f"Transcription failed due to an error: {e}"
+            raise TranscriptionServiceError(f"Transcription failed: {e}") from e
 
     async def close(self):
         """Close the gRPC client."""
         if self.client:
             await self.client.close()
+            self.client = None  # Important to avoid resource warnings
