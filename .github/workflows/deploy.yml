@@ -25,6 +25,27 @@ jobs:
           python-version: "3.11"
 
       # ---------------------
+      # FETCH REMOTE MAIN (PRE-MERGE STATE)
+      # ---------------------
+      - name: Fetch Remote Main
+        run: |
+          # Fetch the remote `main` branch into a local reference
+          git fetch origin main:refs/remotes/origin/main
+
+      - name: Read Version from Pre-Merge Main
+        id: main_version
+        run: |
+          # Check out the remote `main` branch as a detached HEAD
+          git checkout refs/remotes/origin/main
+
+          # Extract the version from pyproject.toml
+          version=$(grep -Po 'version\s*=\s*"\K[^"]+' pyproject.toml)
+          echo "Main branch version before merge: $version"
+
+          # Save the version as an output for later steps
+          echo "version=$version" >> $GITHUB_OUTPUT
+
+      # ---------------------
       # READ VERSION: CURRENT BRANCH
       # ---------------------
       - name: Read Version from Current Branch
@@ -32,24 +53,6 @@ jobs:
         run: |
           version=$(grep -Po 'version\s*=\s*"\K[^"]+' pyproject.toml)
           echo "Current branch version: $version"
-
-          # Store this step's output in GITHUB_OUTPUT:
-          echo "version=$version" >> $GITHUB_OUTPUT
-
-      # ---------------------
-      # FETCH AND READ VERSION: MAIN BRANCH
-      # ---------------------
-      - name: Fetch Main Branch into Detached HEAD
-        run: |
-          # Fetch main into a separate reference
-          git fetch origin main:refs/remotes/origin/main
-          git checkout origin/main
-
-      - name: Read Version from Main Branch
-        id: main_version
-        run: |
-          version=$(grep -Po 'version\s*=\s*"\K[^"]+' pyproject.toml)
-          echo "Main branch version: $version"
 
           # Store this step's output in GITHUB_OUTPUT:
           echo "version=$version" >> $GITHUB_OUTPUT
