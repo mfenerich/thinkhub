@@ -6,7 +6,7 @@ from decouple import config as env_config
 
 class ConfigLoader:
     def __init__(
-        self, default_path="default_config.yaml", user_path="user_config.yaml"
+        self, default_path="thinkhub_config.yaml", user_path="thinkhub_config.yaml"
     ):
         self.default_path = default_path
         self.user_path = user_path
