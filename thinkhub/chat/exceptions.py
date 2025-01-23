@@ -1,3 +1,11 @@
+"""
+This module defines custom exceptions for the chat service.
+
+The exceptions handle specific error cases like missing API keys,
+exceeding token limits, and invalid input data, inheriting from a
+common base exception `BaseServiceError`.
+"""
+
 from thinkhub.exceptions import BaseServiceError
 
 
