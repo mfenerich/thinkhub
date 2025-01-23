@@ -1,0 +1,63 @@
+name: Release and Deploy to PyPI on Version Change
+
+permissions:
+  contents: write
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  release-and-deploy:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Read Version from pyproject.toml
+        id: read_version
+        run: |
+          version=$(grep -Po 'version\s*=\s*"\K[^"]+' pyproject.toml)
+          echo "Detected version: $version"
+          echo "::set-output name=version::$version"
+
+      - name: Check if Version Tag Exists
+        run: |
+          if git rev-parse "v${{ steps.read_version.outputs.version }}" >/dev/null 2>&1; then
+            echo "Tag already exists for version v${{ steps.read_version.outputs.version }}. Skipping."
+            exit 0
+          fi
+
+      - name: Create Version Tag
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git tag -a "v${{ steps.read_version.outputs.version }}" -m "Release version v${{ steps.read_version.outputs.version }}"
+          git push origin "v${{ steps.read_version.outputs.version }}"
+
+      - name: Create GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: v${{ steps.read_version.outputs.version }}
+        run: |
+          gh release create "$TAG" \
+              --repo="$GITHUB_REPOSITORY" \
+              --title="${GITHUB_REPOSITORY#*/} ${TAG#v}" \
+              --generate-notes
+
+      - name: Set up Environment
+        uses: ./.github/actions/setup-environment
+        with:
+          python-version: '3.11'
+
+      - name: Configure Poetry Authentication
+        env:
+          POETRY_TOKEN: ${{ secrets.PYPI_TOKEN }}
+        run: |
+          poetry config pypi-token.pypi "$POETRY_TOKEN"
+
+      - name: Build and Publish Package to PyPI
+        run: |
+          poetry build
+          poetry publish
