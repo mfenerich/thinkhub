@@ -1,7 +1,25 @@
-.venv
+*.pyc
+
+# Packages
+/dist/*
+
+# Unit test / coverage reports
+.coverage
 .pytest_cache
-__pycache__
-.idea
-.vscode
-test_coverage_reports/
-/dist
+
+.DS_Store
+.idea/*
+.python-version
+.vscode/*
+
+/docs/site/*
+.mypy_cache
+
+.venv
+/poetry.toml
+
+*.flac
+*.log
+*.json
+
+.env
