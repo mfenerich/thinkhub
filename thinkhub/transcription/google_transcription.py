@@ -13,7 +13,7 @@ from thinkhub.transcription.exceptions import (
 
 
 class GoogleTranscriptionService(TranscriptionServiceInterface):
-    def __init__(self, sample_rate=24000, bucket_name="speechmarcel"):
+    def __init__(self, sample_rate=24000, bucket_name=""):
         """
         Initialize GoogleTranscriptionService with sample rate and bucket name.
 
