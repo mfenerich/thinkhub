@@ -1,129 +1,68 @@
-name: Release and Deploy to PyPI on Version Change
+name: Release and Deploy to PyPI
 
 permissions:
   contents: write
 
 on:
   push:
-    branches:
-      - main
+    tags:
+      - "v*"
   workflow_dispatch:
 
 jobs:
-  release-and-deploy:
+  release:
     runs-on: ubuntu-22.04
+
+    outputs:
+      version: ${{ steps.read_version.outputs.version }}
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # Ensure the full repository history is fetched
 
       - name: Setup Python Environment
         uses: ./.github/actions/setup-environment
         with:
           python-version: "3.11"
 
-      # ---------------------
-      # FETCH REMOTE MAIN (PRE-MERGE STATE)
-      # ---------------------
-      - name: Fetch Remote Main
+      - name: Read Version from Tag
+        id: read_version
         run: |
-          # Fetch the remote `main` branch into a local reference
-          git fetch origin main:refs/remotes/origin/main
-
-      - name: Read Version from Pre-Merge Main
-        id: main_version
-        run: |
-          # Check out the remote `main` branch as a detached HEAD
-          git checkout refs/remotes/origin/main
-
-          # Extract the version from pyproject.toml
-          version=$(grep -Po 'version\s*=\s*"\K[^"]+' pyproject.toml)
-          echo "Main branch version before merge: $version"
-
-          # Save the version as an output for later steps
+          # Extract the version from the tag name
+          version="${GITHUB_REF#refs/tags/v}"
+          echo "Tag version: $version"
           echo "version=$version" >> $GITHUB_OUTPUT
 
-      # ---------------------
-      # READ VERSION: CURRENT BRANCH
-      # ---------------------
-      - name: Read Version from Current Branch
-        id: current_version
-        run: |
-          version=$(grep -Po 'version\s*=\s*"\K[^"]+' pyproject.toml)
-          echo "Current branch version: $version"
-
-          # Store this step's output in GITHUB_OUTPUT:
-          echo "version=$version" >> $GITHUB_OUTPUT
-
-      # ---------------------
-      # COMPARE VERSIONS
-      # ---------------------
-      - name: Compare Versions
-        id: compare_versions
-        shell: bash
-        run: |
-          current="${{ steps.current_version.outputs.version }}"
-          main="${{ steps.main_version.outputs.version }}"
-      
-          echo "Current: $current"
-          echo "Main: $main"
-      
-          if [ "$current" = "$main" ]; then
-            echo "Versions are the same. Skipping release."
-            echo "should_release=false" >> $GITHUB_OUTPUT
-          else
-            echo "Versions differ. Proceeding with release."
-            echo "should_release=true" >> $GITHUB_OUTPUT
-          fi
-
-      # Return to the original branch (from detached HEAD):
-      - name: Checkout Current Branch
-        if: ${{ steps.compare_versions.outputs.should_release == 'true' }}
-        run: |
-          git checkout -
-
-      # ---------------------
-      # CREATE VERSION TAG
-      # ---------------------
-      - name: Create Version Tag
-        if: ${{ steps.compare_versions.outputs.should_release == 'true' }}
-        run: |
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
-          git tag -a "v${{ steps.current_version.outputs.version }}" -m "Release version v${{ steps.current_version.outputs.version }}"
-          git push origin "v${{ steps.current_version.outputs.version }}"
-
-      # ---------------------
-      # CREATE GITHUB RELEASE
-      # ---------------------
       - name: Create GitHub Release
-        if: ${{ steps.compare_versions.outputs.should_release == 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: v${{ steps.current_version.outputs.version }}
         run: |
-          gh release create "$TAG" \
+          version="${{ steps.read_version.outputs.version }}"
+          gh release create "v$version" \
             --repo="$GITHUB_REPOSITORY" \
-            --title="${GITHUB_REPOSITORY#*/} ${TAG#v}" \
+            --title="${GITHUB_REPOSITORY#*/} $version" \
             --generate-notes
 
-      # ---------------------
-      # CONFIGURE POETRY AUTH
-      # ---------------------
+  deploy:
+    runs-on: ubuntu-22.04
+    needs: release
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python Environment
+        uses: ./.github/actions/setup-environment
+        with:
+          python-version: "3.11"
+
       - name: Configure Poetry Authentication
-        if: ${{ steps.compare_versions.outputs.should_release == 'true' }}
         env:
           POETRY_TOKEN: ${{ secrets.PYPI_TOKEN }}
         run: |
           poetry config pypi-token.pypi "$POETRY_TOKEN"
 
-      # ---------------------
-      # BUILD & PUBLISH
-      # ---------------------
       - name: Build and Publish Package to PyPI
-        if: ${{ steps.compare_versions.outputs.should_release == 'true' }}
         run: |
           poetry build
           poetry publish
