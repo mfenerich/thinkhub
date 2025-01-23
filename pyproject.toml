@@ -21,6 +21,7 @@ pytest-asyncio = "^0.25.2"
 
 [tool.ruff]
 exclude = [".venv"]
+ignore = ["E501"]
 
 [tool.ruff.lint]
 select = [

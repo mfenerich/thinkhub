@@ -1,3 +1,10 @@
+"""
+Define the `OpenAIChatService` class, which interacts with the OpenAI API.
+
+to generate chat responses asynchronously. It supports both text and image inputs
+and streams responses back to the user in chunks.
+"""
+
 import base64
 import os
 from collections.abc import AsyncGenerator
@@ -15,9 +22,18 @@ from thinkhub.chat.exceptions import (
 
 
 class OpenAIChatService(ChatServiceInterface):
+    """
+    An implementation of the `ChatServiceInterface` for interacting with the OpenAI API.
+
+    This service provides functionality to:
+    - Stream chat responses from OpenAI.
+    - Handle both text and image inputs.
+    - Manage token limits for the model's context.
+    """
+
     def __init__(self, model: str = "gpt-4o"):
         """
-        Initializes the OpenAIChatService with a hypothetical AsyncOpenAI client.
+        Initialize the OpenAIChatService with a hypothetical AsyncOpenAI client.
 
         Args:
             model (str): Model name to use for chat.
@@ -40,9 +56,9 @@ class OpenAIChatService(ChatServiceInterface):
 
     def _check_and_manage_token_limit(self):
         """
-        Ensures that the total tokens in the messages context do not exceed the model's maximum token limit.
+        Ensure that the total tokens in the messages context do not exceed.
 
-        Removes the oldest user messages as needed, keeping the system prompt intact.
+        the model's maximum token limit.
         Raises a TokenLimitExceededError if the context cannot be reduced further.
         """
         total_tokens = sum(
@@ -68,7 +84,7 @@ class OpenAIChatService(ChatServiceInterface):
 
     def encode_image(self, image_path: str) -> str:
         """
-        Encodes an image file as a base64 string.
+        Encode an image file as a base64 string.
 
         Args:
             image_path (str): Path to the image file.
@@ -88,14 +104,17 @@ class OpenAIChatService(ChatServiceInterface):
         system_prompt: str = "You are a helpful assistant.",
     ) -> AsyncGenerator[str, None]:
         """
-        Streams the ChatGPT response given input data, which can be text or an image (as base64).
+        Stream the ChatGPT response given input data.
 
-        Yields partial responses (tokens) as they arrive.
+        It supports both text and image (as base64) inputs, yielding partial
+        responses (tokens) as they arrive.
 
         Args:
-            input_data (Union[str, list[dict[str, str]]]): The user input, either as plain text or a
-                list of dicts each containing an 'image_path' key.
-            system_prompt (str): The system's initial prompt to guide the assistant's behavior.
+            input_data (Union[str, list[dict[str, str]]]): The user input,
+                either as plain text or a list of dicts each containing an
+                'image_path' key.
+            system_prompt (str): The system's initial prompt to guide the
+                assistant's behavior.
 
         Yields:
             AsyncGenerator[str, None]: Partial response tokens.
@@ -111,7 +130,8 @@ class OpenAIChatService(ChatServiceInterface):
         api_payload = {
             "model": self.model,
             "stream": True,
-            "messages": self.messages.copy(),  # Ensure context remains intact for text inputs
+            # Ensure context remains intact for text inputs
+            "messages": self.messages.copy(),
         }
 
         # Check the input type
@@ -150,7 +170,8 @@ class OpenAIChatService(ChatServiceInterface):
         else:
             # Raise InvalidInputDataError for incorrect input type
             raise InvalidInputDataError(
-                "Invalid input_data type. Must be a string or a list of dictionaries with 'image_path' keys."
+                "Invalid input_data type. Must be a string or a list of dictionaries "
+                "with 'image_path' keys."
             )
 
         # Manage token limits
