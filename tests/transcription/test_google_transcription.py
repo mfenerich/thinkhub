@@ -96,7 +96,7 @@ class TestGoogleTranscriptionService:
             service = GoogleTranscriptionService()
             with pytest.raises(AudioFileNotFoundError) as excinfo:
                 await service.transcribe("dummy_file.flac")
-            assert "File dummy_file.flac not found." in str(excinfo.value)
+            assert "Audio file not found: dummy_file.flac" in str(excinfo.value)
 
     @pytest.mark.usefixtures("mock_env_creds", "mock_credentials_file")
     @patch(
