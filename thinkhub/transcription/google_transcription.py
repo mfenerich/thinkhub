@@ -12,6 +12,7 @@ from thinkhub.transcription.exceptions import (
     TranscriptionJobError,
 )
 
+
 class GoogleTranscriptionService(TranscriptionServiceInterface):
     """
     Service for transcribing audio using Google Cloud Speech-to-Text asynchronously.
@@ -33,21 +34,21 @@ class GoogleTranscriptionService(TranscriptionServiceInterface):
         self._load_google_credentials()
 
         # Initialize the client (asynchronously).
-        # If you prefer to explicitly initialize later, remove this line 
+        # If you prefer to explicitly initialize later, remove this line
         # and call `await self.initialize_client()` manually.
-        # But be aware that `__init__` cannot be truly async. 
+        # But be aware that `__init__` cannot be truly async.
         # Instead, you could do lazy initialization on first use in `transcribe`.
         # For demonstration, we show how to handle it separately.
         # In practice, you might leave it to be called in `transcribe` if you need real async initialization.
-        # 
+        #
         # Example if you want lazy initialization:
         #     pass
-        # 
+        #
         # Otherwise, to do it here (blocking call), see the comment inside initialize_client.
         #
         # However, because `initialize_client` is async, we typically won't call it directly in __init__.
         # We'll rely on the check in `transcribe` to do it for us.
-    
+
     def _load_google_credentials(self) -> None:
         """
         Load and validate the GOOGLE_APPLICATION_CREDENTIALS environment variable.
