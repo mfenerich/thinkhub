@@ -59,19 +59,21 @@ jobs:
       # ---------------------
       - name: Compare Versions
         id: compare_versions
+        shell: bash
         run: |
           current="${{ steps.current_version.outputs.version }}"
           main="${{ steps.main_version.outputs.version }}"
-
+      
           echo "Current: $current"
           echo "Main: $main"
-
+      
           if [ "$current" = "$main" ]; then
             echo "Versions are the same. Skipping release."
             echo "should_release=false" >> $GITHUB_OUTPUT
           else
             echo "Versions differ. Proceeding with release."
             echo "should_release=true" >> $GITHUB_OUTPUT
+          fi
 
       # Return to the original branch (from detached HEAD):
       - name: Checkout Current Branch
