@@ -3,10 +3,17 @@ import os
 from google.cloud import speech_v1
 
 from thinkhub.transcription.base import TranscriptionServiceInterface
+from thinkhub.transcription.exceptions import (
+    AudioFileNotFoundError,
+    ClientInitializationError,
+    InvalidGoogleCredentialsPathError,
+    MissingGoogleCredentialsError,
+    TranscriptionJobError,
+)
 
 
 class GoogleTranscriptionService(TranscriptionServiceInterface):
-    def __init__(self, sample_rate=24000, bucket_name="speechmarcel"):
+    def __init__(self, sample_rate=24000, bucket_name=""):
         """
         Initialize GoogleTranscriptionService with sample rate and bucket name.
 
@@ -23,11 +30,14 @@ class GoogleTranscriptionService(TranscriptionServiceInterface):
         """Load GOOGLE_APPLICATION_CREDENTIALS from .env."""
         google_creds = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
         if not google_creds:
-            raise ValueError(
+            # Raise custom exception for missing credentials
+            raise MissingGoogleCredentialsError(
                 "GOOGLE_APPLICATION_CREDENTIALS environment variable is not set."
             )
+
         if not os.path.exists(google_creds):
-            raise FileNotFoundError(
+            # Raise custom exception for an invalid file path
+            raise InvalidGoogleCredentialsPathError(
                 f"GOOGLE_APPLICATION_CREDENTIALS file not found: {google_creds}"
             )
 
@@ -35,8 +45,14 @@ class GoogleTranscriptionService(TranscriptionServiceInterface):
         os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = google_creds
 
     async def initialize_client(self):
-        """Initialize SpeechAsyncClient within the correct event loop."""
-        self.client = speech_v1.SpeechAsyncClient()
+        """Initialize SpeechAsyncClient."""
+        try:
+            self.client = speech_v1.SpeechAsyncClient()
+        except Exception as e:
+            # Raise a custom initialization error
+            raise ClientInitializationError(
+                f"Failed to initialize Google Speech client: {e}"
+            ) from e
 
     async def transcribe(self, file_path: str) -> str:
         """Asynchronously transcribe audio."""
@@ -44,7 +60,8 @@ class GoogleTranscriptionService(TranscriptionServiceInterface):
             await self.initialize_client()
 
         if not os.path.exists(file_path):
-            raise FileNotFoundError(f"File {file_path} not found.")
+            # Raise a custom exception when the audio file is not found
+            raise AudioFileNotFoundError(f"File {file_path} not found.")
 
         try:
             with open(file_path, "rb") as f:
@@ -65,10 +82,12 @@ class GoogleTranscriptionService(TranscriptionServiceInterface):
                 result.alternatives[0].transcript for result in response.results
             )
             return transcription or "No transcription available."
+
         except Exception as e:
-            return f"Transcription failed due to an error: {e}"
+            raise TranscriptionJobError(f"Transcription failed: {e}") from e
 
     async def close(self):
         """Close the gRPC client."""
         if self.client:
             await self.client.close()
+            self.client = None
