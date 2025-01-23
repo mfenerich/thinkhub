@@ -19,6 +19,12 @@ jobs:
         with:
           fetch-depth: 0  # Ensure the full repository history is fetched
 
+      - name: Setup Python Environment
+        uses: ./.github/actions/setup-environment
+        with:
+          python-version: "3.11"
+          poetry-version: "1.8.3"
+
       - name: Read Version from Current Branch
         id: current_version
         run: |

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "thinkhub"
-version = "0.1.91"
+version = "0.1.92"
 description = "ThinkHub is a versatile Python framework that provides a unified interface for interacting with multiple AI services, such as chat and transcription. It simplifies the integration process and allows developers to extend its functionality by creating and registering custom plugins. ThinkHub is designed for flexibility and scalability, making it an ideal choice for projects that rely on AI-driven services."
 authors = ["Marcel Fenerich <marcel@feneri.ch>"]
 readme = "README.md"
