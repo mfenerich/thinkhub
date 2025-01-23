@@ -6,7 +6,6 @@ and managing transcription services.
 """
 
 import logging
-from typing import Dict, Type
 
 from thinkhub.exceptions import ProviderNotFoundError
 
@@ -16,7 +15,7 @@ from .google_transcription import GoogleTranscriptionService
 
 logger = logging.getLogger(__name__)
 
-_TRANSCRIPTION_SERVICES: Dict[str, Type[TranscriptionServiceInterface]] = {
+_TRANSCRIPTION_SERVICES: dict[str, type[TranscriptionServiceInterface]] = {
     "google": GoogleTranscriptionService,  # Pre-register Google service
 }
 
@@ -24,7 +23,7 @@ _TRANSCRIPTION_SERVICES: Dict[str, Type[TranscriptionServiceInterface]] = {
 def register_transcription_service(name: str):
     """Decorate to register a transcription service."""
 
-    def decorator(service_class: Type[TranscriptionServiceInterface]):
+    def decorator(service_class: type[TranscriptionServiceInterface]):
         name_lower = name.lower()
         if name_lower in _TRANSCRIPTION_SERVICES:
             logger.warning(

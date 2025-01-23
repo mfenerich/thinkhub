@@ -69,14 +69,14 @@ def test_re_register_service_with_warning(caplog):
         async def close(self):
             pass
 
-    assert (
-        "Overriding transcription service: fake" in caplog.text
-    ), "Expected a warning about overriding 'fake' service."
+    assert "Overriding transcription service: fake" in caplog.text, (
+        "Expected a warning about overriding 'fake' service."
+    )
 
     instance = get_transcription_service("fake")
-    assert isinstance(
-        instance, AnotherFakeService
-    ), "Expected to get the new AnotherFakeService, not the original one."
+    assert isinstance(instance, AnotherFakeService), (
+        "Expected to get the new AnotherFakeService, not the original one."
+    )
 
 
 def test_get_transcription_service_with_params():
