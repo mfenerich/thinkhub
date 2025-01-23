@@ -1,3 +1,11 @@
+"""
+Define custom exception classes specific to the transcription service.
+
+These exceptions handle various error scenarios, such as missing credentials,
+invalid file paths, and client initialization failures, providing a structured
+way to manage errors in the transcription process.
+"""
+
 from thinkhub.exceptions import BaseServiceError
 
 
