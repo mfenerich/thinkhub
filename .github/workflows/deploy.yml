@@ -4,9 +4,11 @@ permissions:
   contents: write
 
 on:
-  push:
-    tags:
-      - "v*"
+  pull_request:
+    branches:
+      - main
+    types:
+      - closed
 
 jobs:
   release:
