@@ -7,6 +7,11 @@ import tiktoken
 from openai import AsyncOpenAI
 
 from thinkhub.chat.base import ChatServiceInterface
+from thinkhub.chat.exceptions import (
+    InvalidInputDataError,
+    MissingAPIKeyError,
+    TokenLimitExceededError,
+)
 
 
 class OpenAIChatService(ChatServiceInterface):
@@ -20,7 +25,8 @@ class OpenAIChatService(ChatServiceInterface):
         api_key = os.getenv("CHATGPT_API_KEY")
 
         if not api_key:
-            raise ValueError("CHATGPT_API_KEY environment variable not set")
+            # Raise the custom MissingAPIKeyError
+            raise MissingAPIKeyError("CHATGPT_API_KEY environment variable is missing.")
 
         self.openai = AsyncOpenAI(api_key=api_key)
         self.model = model
@@ -37,6 +43,7 @@ class OpenAIChatService(ChatServiceInterface):
         Ensures that the total tokens in the messages context do not exceed the model's maximum token limit.
 
         Removes the oldest user messages as needed, keeping the system prompt intact.
+        Raises a TokenLimitExceededError if the context cannot be reduced further.
         """
         total_tokens = sum(
             len(self.model_encoding.encode(m["content"]))
@@ -44,13 +51,19 @@ class OpenAIChatService(ChatServiceInterface):
             if "content" in m
         )
 
+        # Continuously remove the second message (oldest user message) if over the limit.
         while total_tokens > self.MAX_TOKENS and len(self.messages) > 1:
-            # Remove the second message to preserve the system prompt
             self.messages.pop(1)
             total_tokens = sum(
                 len(self.model_encoding.encode(m["content"]))
                 for m in self.messages
                 if "content" in m
+            )
+
+        # If still over the limit but cannot remove any more messages, raise an error.
+        if total_tokens > self.MAX_TOKENS:
+            raise TokenLimitExceededError(
+                "Cannot reduce the message context further; token limit exceeded."
             )
 
     def encode_image(self, image_path: str) -> str:
@@ -67,7 +80,7 @@ class OpenAIChatService(ChatServiceInterface):
             with open(image_path, "rb") as image_file:
                 return base64.b64encode(image_file.read()).decode("utf-8")
         except Exception as e:
-            raise ValueError(f"Failed to encode image: {e}")
+            raise InvalidInputDataError(f"Failed to encode image: {e}")
 
     async def stream_chat_response(
         self,
@@ -80,8 +93,8 @@ class OpenAIChatService(ChatServiceInterface):
         Yields partial responses (tokens) as they arrive.
 
         Args:
-            input_data (Union[str, dict]): The user input, either as plain text or a
-            dictionary containing an image path.
+            input_data (Union[str, list[dict[str, str]]]): The user input, either as plain text or a
+                list of dicts each containing an 'image_path' key.
             system_prompt (str): The system's initial prompt to guide the assistant's behavior.
 
         Yields:
@@ -101,6 +114,7 @@ class OpenAIChatService(ChatServiceInterface):
             "messages": self.messages.copy(),  # Ensure context remains intact for text inputs
         }
 
+        # Check the input type
         if isinstance(input_data, str):
             # Add user text input to context and API payload
             self.messages.append({"role": "user", "content": input_data})
@@ -110,7 +124,6 @@ class OpenAIChatService(ChatServiceInterface):
         ):
             # Process each dictionary in the list and encode images as base64
             image_messages = []
-
             for item in input_data:
                 image_path = item["image_path"]  # Extract image path
                 base64_image = self.encode_image(image_path)  # Encode image to base64
@@ -135,8 +148,9 @@ class OpenAIChatService(ChatServiceInterface):
                 }
             )
         else:
-            raise ValueError(
-                "Invalid input_data type. Must be a string or a list of dictionaries with 'image_path' keys.",
+            # Raise InvalidInputDataError for incorrect input type
+            raise InvalidInputDataError(
+                "Invalid input_data type. Must be a string or a list of dictionaries with 'image_path' keys."
             )
 
         # Manage token limits
@@ -161,5 +175,4 @@ class OpenAIChatService(ChatServiceInterface):
             self.messages.append({"role": "assistant", "content": full_response})
 
         except Exception as e:
-            # Handle or log exceptions appropriately
             yield f"[Error streaming response: {e}]"
