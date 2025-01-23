@@ -17,7 +17,7 @@ ThinkHub is a Python-based framework that provides a unified interface for inter
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/your-username/thinkhub.git
+   git clone https://github.com/mfenerich/thinkhub.git
    cd thinkhub
    ```
 
