@@ -1,3 +1,5 @@
+"""Unit tests for testing the transcription service class registry."""
+
 import pytest
 
 from thinkhub.exceptions import ProviderNotFoundError
@@ -15,31 +17,43 @@ class FakeTranscriptionService(TranscriptionServiceInterface):
     """A simple fake transcription service for testing registration and retrieval."""
 
     def __init__(self, test_value=None):
+        """
+        Initialize the fake transcription service.
+
+        Args:
+            test_value (Optional): A custom value for testing purposes.
+        """
         self.test_value = test_value
 
     async def initialize_client(self):
+        """Initialize the fake client (noop for the fake service)."""
         pass
 
     async def transcribe(self, file_path: str) -> str:
+        """
+        Simulate transcription of an audio file.
+
+        Args:
+            file_path (str): Path to the audio file.
+
+        Returns:
+            str: A fake transcription result.
+        """
         return f"Fake transcription for {file_path} with test_value={self.test_value}"
 
     async def close(self):
+        """Close the fake transcription service (noop for the fake service)."""
         pass
 
 
 def test_register_transcription_service():
-    """
-    Verify the 'fake' service is registered.
-    """
+    """Verify the 'fake' service is registered."""
     providers = get_available_providers()
     assert "fake" in providers, "Expected 'fake' to be in available providers."
 
 
 def test_re_register_service_with_warning(caplog):
-    """
-    Re-register 'fake' with another class, ensuring a warning is logged
-    and the service is replaced.
-    """
+    """Re-register 'fake' with another class, ensuring a warning is logged and the service is replaced."""
 
     @register_transcription_service("fake")
     class AnotherFakeService(TranscriptionServiceInterface):
@@ -66,26 +80,20 @@ def test_re_register_service_with_warning(caplog):
 
 
 def test_get_transcription_service_with_params():
-    """
-    Test passing custom parameters to AnotherFakeService.
-    """
+    """Test passing custom parameters to AnotherFakeService."""
     service = get_transcription_service("fake", test_value=123)
     assert service.test_value == 123
 
 
 def test_unregistered_provider():
-    """
-    Test requesting an unregistered provider raises ProviderNotFoundError.
-    """
+    """Test requesting an unregistered provider raises ProviderNotFoundError."""
     with pytest.raises(ProviderNotFoundError) as excinfo:
         get_transcription_service("non_existent")
     assert "Unsupported provider: non_existent" in str(excinfo.value)
 
 
 def test_transcription_service_init_failure():
-    """
-    Test that an exception in the constructor raises TranscriptionServiceError.
-    """
+    """Test that an exception in the constructor raises TranscriptionServiceError."""
 
     @register_transcription_service("failing")
     class FailingService(TranscriptionServiceInterface):
