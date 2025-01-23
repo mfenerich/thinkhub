@@ -1,3 +1,9 @@
+"""
+Module for Google Cloud Speech-to-Text transcription service.
+
+Provides asynchronous transcription functionality using Google APIs.
+"""
+
 import os
 from typing import Optional
 
@@ -15,9 +21,7 @@ from thinkhub.transcription.exceptions import (
 
 
 class GoogleTranscriptionService(TranscriptionServiceInterface):
-    """
-    Service for transcribing audio using Google Cloud Speech-to-Text asynchronously.
-    """
+    """Transcribing audio using Google Cloud Speech-to-Text asynchronously."""
 
     def __init__(self, sample_rate: int = 24000, bucket_name: str = "") -> None:
         """
@@ -25,7 +29,7 @@ class GoogleTranscriptionService(TranscriptionServiceInterface):
 
         Args:
             sample_rate (int): The sampling rate of the input audio. Default is 24000.
-            bucket_name (str): (Optional) The name of a Google Cloud Storage bucket if needed.
+            (Optional) The name of a Google Cloud Storage bucket if needed.
         """
         self.client: Optional[speech_v1.SpeechAsyncClient] = None
         self.bucket_name = bucket_name
@@ -40,14 +44,17 @@ class GoogleTranscriptionService(TranscriptionServiceInterface):
         # But be aware that `__init__` cannot be truly async.
         # Instead, you could do lazy initialization on first use in `transcribe`.
         # For demonstration, we show how to handle it separately.
-        # In practice, you might leave it to be called in `transcribe` if you need real async initialization.
+        # In practice, you might leave it to be called in `transcribe`
+        # if you need real async initialization.
         #
         # Example if you want lazy initialization:
         #     pass
         #
-        # Otherwise, to do it here (blocking call), see the comment inside initialize_client.
+        # Otherwise, to do it here (blocking call), see the comment
+        # inside initialize_client.
         #
-        # However, because `initialize_client` is async, we typically won't call it directly in __init__.
+        # However, because `initialize_client` is async, we typically
+        # won't call it directly in __init__.
         # We'll rely on the check in `transcribe` to do it for us.
 
     def _load_google_credentials(self) -> None:
@@ -136,9 +143,7 @@ class GoogleTranscriptionService(TranscriptionServiceInterface):
             raise TranscriptionJobError(f"Transcription failed: {e}") from e
 
     async def close(self) -> None:
-        """
-        Close the gRPC client connection gracefully.
-        """
+        """Close the gRPC client connection gracefully."""
         if self.client:
             await self.client.close()
             self.client = None
