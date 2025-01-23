@@ -8,7 +8,6 @@ It includes:
 """
 
 import logging
-from typing import Dict, Type
 
 from thinkhub.exceptions import ProviderNotFoundError
 
@@ -18,7 +17,7 @@ from .openai_chat import OpenAIChatService
 
 logger = logging.getLogger(__name__)
 
-_CHAT_SERVICES: Dict[str, Type[ChatServiceInterface]] = {
+_CHAT_SERVICES: dict[str, type[ChatServiceInterface]] = {
     "openai": OpenAIChatService,  # Pre-register OpenAI service
 }
 
@@ -26,7 +25,7 @@ _CHAT_SERVICES: Dict[str, Type[ChatServiceInterface]] = {
 def register_chat_service(name: str):
     """Register a chat service dynamically."""
 
-    def decorator(service_class: Type[ChatServiceInterface]):
+    def decorator(service_class: type[ChatServiceInterface]):
         name_lower = name.lower()
         if name_lower in _CHAT_SERVICES:
             logger.warning(
