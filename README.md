@@ -42,7 +42,7 @@ To use a chat service like OpenAI:
 from thinkhub.chat import get_chat_service
 
 chat_service = get_chat_service("openai", model="gpt-4o")
-async for response in chat_service.stream_chat_response("Hello, ThinkHub!"):
+async for response in chat_service.stream_chat_response("Hello, ThinkHub!!!"):
     print(response)
 ```
 
