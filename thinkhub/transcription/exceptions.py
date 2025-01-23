@@ -8,13 +8,21 @@ class TranscriptionServiceError(BaseServiceError):
 
 
 class MissingGoogleCredentialsError(TranscriptionServiceError):
-    """Raised when the GOOGLE_APPLICATION_CREDENTIALS environment variable is missing."""
+    """
+    Raised when the GOOGLE_APPLICATION_CREDENTIALS environment variable is missing.
+
+    This environment variable is required to authenticate with the Google Speech API.
+    """
 
     pass
 
 
 class InvalidGoogleCredentialsPathError(TranscriptionServiceError):
-    """Raised when the file specified by GOOGLE_APPLICATION_CREDENTIALS does not exist."""
+    """
+    Raised when the file specified by GOOGLE_APPLICATION_CREDENTIALS does not exist.
+
+    This could be due to a typo in the path or the file being deleted.
+    """
 
     pass
 
