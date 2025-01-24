@@ -57,7 +57,7 @@ class AnthropicChatService(ChatServiceInterface):
         self.system_prompt: Optional[str] = None
 
     def _count_tokens(self, content: any) -> int:
-        """Robust token counting using Anthropic's message token estimation."""
+        """Token counting using Anthropic's message token estimation."""
         try:
             # Sanitize content
             if isinstance(content, list):
@@ -67,14 +67,10 @@ class AnthropicChatService(ChatServiceInterface):
                     if isinstance(item, dict)
                 )
 
-            # Use a dummy message to estimate tokens
-            dummy_message = {"role": "user", "content": str(content)}
-
-            # Estimate tokens by creating a dummy message
-            tokens = self.anthropic.messages.estimate_tokens(
-                model=self.model, messages=[dummy_message]
+            # Estimate tokens for the content
+            return self.anthropic.messages.estimate_tokens(
+                model=self.model, messages=[{"role": "user", "content": str(content)}]
             )
-            return tokens
         except Exception as e:
             self.logger.warning(
                 f"Token counting failed: {e}. Falling back to word-based estimation."
