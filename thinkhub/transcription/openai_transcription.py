@@ -4,14 +4,17 @@ Module for OpenAI Whisper transcription service.
 Provides asynchronous transcription functionality using OpenAI APIs.
 """
 
+import io
 import os
+
 import aiofiles
+
 from thinkhub.transcription.base import TranscriptionServiceInterface
 from thinkhub.transcription.exceptions import (
     AudioFileNotFoundError,
     ClientInitializationError,
-    TranscriptionJobError,
     MissingAPIKeyError,
+    TranscriptionJobError,
 )
 
 
@@ -40,6 +43,7 @@ class OpenAITranscriptionService(TranscriptionServiceInterface):
         """
         try:
             from openai import AsyncOpenAI
+
             self.client = AsyncOpenAI(api_key=self.api_key)
         except ImportError as e:
             raise ClientInitializationError(
@@ -67,11 +71,16 @@ class OpenAITranscriptionService(TranscriptionServiceInterface):
             raise AudioFileNotFoundError(f"Audio file not found: {file_path}")
 
         try:
-            with open(file_path, "rb") as audio_file:
+            async with aiofiles.open(file_path, "rb") as af:
+                audio_data = await af.read()
+
+                # Convert the bytes into a file-like object
+                audio_file = io.BytesIO(audio_data)
+                audio_file.name = os.path.basename(file_path)
+
                 # Use OpenAI Whisper API for transcription
                 response = await self.client.audio.transcriptions.create(
-                    model=self.model,
-                    file=audio_file
+                    model=self.model, file=audio_file
                 )
 
             transcription = response.text
