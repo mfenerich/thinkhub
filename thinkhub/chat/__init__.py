@@ -9,6 +9,7 @@ It includes:
 
 import logging
 
+from thinkhub.chat.anthropic_chat import AnthropicChatService
 from thinkhub.exceptions import ProviderNotFoundError
 
 from .base import ChatServiceInterface
@@ -19,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 _CHAT_SERVICES: dict[str, type[ChatServiceInterface]] = {
     "openai": OpenAIChatService,  # Pre-register OpenAI service
+    "anthropic": AnthropicChatService,  # Pre-register OpenAI service
 }
 
 
