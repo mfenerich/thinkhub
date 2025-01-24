@@ -12,11 +12,13 @@ from thinkhub.exceptions import ProviderNotFoundError
 from .base import TranscriptionServiceInterface
 from .exceptions import TranscriptionServiceError
 from .google_transcription import GoogleTranscriptionService
+from .openai_transcription import OpenAITranscriptionService
 
 logger = logging.getLogger(__name__)
 
 _TRANSCRIPTION_SERVICES: dict[str, type[TranscriptionServiceInterface]] = {
     "google": GoogleTranscriptionService,  # Pre-register Google service
+    "openai": OpenAITranscriptionService,  # Pre-register OpenAI service
 }
 
 

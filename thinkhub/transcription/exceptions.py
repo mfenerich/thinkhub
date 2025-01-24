@@ -51,3 +51,9 @@ class TranscriptionJobError(TranscriptionServiceError):
     """Raised for errors that occur during the transcription job."""
 
     pass
+
+
+class MissingAPIKeyError(TranscriptionServiceError):
+    """Raised when the API KEY environment variable is missing."""
+
+    pass
