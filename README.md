@@ -13,6 +13,31 @@ ThinkHub is a Python-based framework that provides a unified interface for inter
 
 ---
 
+## Supported Services
+
+### **Audio Transcriptions**
+- **OpenAI**: Using the `whisper-1` model.
+- **Google Speech-to-Text**
+
+### **Chat**
+- **OpenAI**: Supporting models like `gpt-4` and `gpt-3.5`.
+- **Anthropic**: Supporting `Claude.ai`.
+
+### **TODO**
+#### Transcription
+- **AWS**: Add support for [Amazon Transcribe](https://aws.amazon.com/transcribe/).
+- **Local service**: Integrate with [OpenAI Whisper](https://github.com/openai/whisper) for local transcription.
+- **TBD**: Other services under consideration.
+
+#### Chat
+- **Gemini**: Add support for Google's Gemini models.
+- **TBD**: Other services under consideration.
+
+### **Future Plans**
+- More features to be planned and implemented.
+
+---
+
 ## Installation
 
 1. **Clone the repository:**
@@ -35,6 +60,8 @@ ThinkHub is a Python-based framework that provides a unified interface for inter
 ---
 
 ## Usage
+
+> **Note**: This library currently supports asynchronous calls only because it was originally designed for an internal project. Synchronous calls will be added in the near future.
 
 ### **Chat Services**
 To use a chat service like OpenAI:
@@ -178,3 +205,4 @@ This project is licensed under the [MIT License](LICENSE).
 ## Acknowledgments
 
 Special thanks to the open-source community for providing the tools and libraries that made this project possible.
+
