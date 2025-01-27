@@ -1403,12 +1403,12 @@ docs = ["furo (>=2023.7.26)", "proselint (>=0.13)", "sphinx (>=7.1.2,!=7.3)", "s
 test = ["covdefaults (>=2.3)", "coverage (>=7.2.7)", "coverage-enable-subprocess (>=1)", "flaky (>=3.7)", "packaging (>=23.1)", "pytest (>=7.4)", "pytest-env (>=0.8.2)", "pytest-freezer (>=0.4.8)", "pytest-mock (>=3.11.1)", "pytest-randomly (>=3.12)", "pytest-timeout (>=2.1)", "setuptools (>=68)", "time-machine (>=2.10)"]
 
 [extras]
-all = ["anthropic", "google-cloud-speech", "openai"]
+all = ["anthropic", "google-cloud-speech", "openai", "tiktoken"]
 anthropic = ["anthropic"]
 google = ["google-cloud-speech"]
-openai = ["openai"]
+openai = ["openai", "tiktoken"]
 
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "ce931f9d75cfd8f280e34e845ed511a4ce27a70c4975afe09c78ca04c32f2287"
+content-hash = "45b90687d3e010db9c71633d63f0b1324655f64429b3089fc2d02a3ac7b85855"
