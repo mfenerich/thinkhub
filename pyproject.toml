@@ -32,7 +32,7 @@ google-cloud-storage = {version = "^2.19.0", optional = true}
 openai = ["openai", "tiktoken"]
 google = ["google-cloud-speech", "google-cloud-storage"]
 anthropic = ["anthropic"]
-all = ["openai", "tiktoken", "google", "anthropic"]
+all = ["openai", "tiktoken", "google-cloud-speech",  "google-cloud-storage", "anthropic"]
 
 [tool.poetry.dev-dependencies]
 coverage = "7.6.10"

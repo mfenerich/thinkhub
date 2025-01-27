@@ -1512,7 +1512,7 @@ docs = ["furo (>=2023.7.26)", "proselint (>=0.13)", "sphinx (>=7.1.2,!=7.3)", "s
 test = ["covdefaults (>=2.3)", "coverage (>=7.2.7)", "coverage-enable-subprocess (>=1)", "flaky (>=3.7)", "packaging (>=23.1)", "pytest (>=7.4)", "pytest-env (>=0.8.2)", "pytest-freezer (>=0.4.8)", "pytest-mock (>=3.11.1)", "pytest-randomly (>=3.12)", "pytest-timeout (>=2.1)", "setuptools (>=68)", "time-machine (>=2.10)"]
 
 [extras]
-all = ["anthropic", "google-cloud-speech", "openai", "tiktoken"]
+all = ["anthropic", "google-cloud-speech", "google-cloud-storage", "openai", "tiktoken"]
 anthropic = ["anthropic"]
 google = ["google-cloud-speech", "google-cloud-storage"]
 openai = ["openai", "tiktoken"]
@@ -1520,4 +1520,4 @@ openai = ["openai", "tiktoken"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "561f573de652ff1e53bceea7656fdf3831c174d7e70894b20e04e5595dc92bb5"
+content-hash = "b8aa7e04048ddca7658c7dc577a8b2696525a0e9cead2bc6585f47be1b971535"
