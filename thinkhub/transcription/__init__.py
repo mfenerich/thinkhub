@@ -8,6 +8,7 @@ and managing transcription services.
 import logging
 
 from thinkhub.exceptions import ProviderNotFoundError
+from thinkhub.utils import validate_dependencies
 
 from .base import TranscriptionServiceInterface
 from .exceptions import TranscriptionServiceError
@@ -23,29 +24,6 @@ _REQUIRED_DEPENDENCIES: dict[str, list[str]] = {
     "google": ["google.cloud.speech"],
     "openai": ["openai", "tiktoken"],
 }
-
-def validate_dependencies(provider: str):
-    """
-    Validate that the required dependencies for the specified provider are installed.
-
-    Args:
-        provider (str): The name of the provider to validate dependencies for.
-
-    Raises:
-        ImportError: If required dependencies are not installed.
-    """
-    missing_dependencies = []
-    for dependency in _REQUIRED_DEPENDENCIES.get(provider, []):
-        try:
-            __import__(dependency)
-        except ImportError:
-            missing_dependencies.append(dependency)
-
-    if missing_dependencies:
-        raise ImportError(
-            f"Missing dependencies for provider '{provider}': {', '.join(missing_dependencies)}. "
-            f"Install them using 'poetry install --extras {provider}' or 'pip install thinkhub[{provider}]'."
-        )
 
 def register_transcription_service(name: str):
     """Decorate to register a transcription service."""
@@ -99,7 +77,7 @@ def get_transcription_service(provider: str, **kwargs) -> TranscriptionServiceIn
         raise ProviderNotFoundError(f"Unsupported provider: {provider}")
 
     # Validate required dependencies
-    validate_dependencies(provider_lower)
+    validate_dependencies(provider_lower, _REQUIRED_DEPENDENCIES)
 
     try:
         # Dynamically import the service class
