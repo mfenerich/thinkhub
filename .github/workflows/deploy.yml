@@ -26,6 +26,10 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Install Dependencies
+        run: |
+          pip install toml
+
       - name: Ensure PR was merged
         if: ${{ github.event.pull_request.merged != true }}
         run: |
@@ -41,7 +45,7 @@ jobs:
           echo "Version read from pyproject.toml: $version"
 
           # Expose 'version' as an output for subsequent steps/jobs:
-          echo "version=$version" >> $GITHUB_OUTPUT_PATHS
+          echo "version=$version" >> $GITHUB_OUTPUT
 
       - name: Create GitHub Release
         if: ${{ success() }}
