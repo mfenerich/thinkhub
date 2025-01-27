@@ -21,6 +21,33 @@ _CHAT_SERVICES: dict[str, str] = {
     "anthropic": "thinkhub.chat.anthropic_chat.AnthropicChatService",
 }
 
+_REQUIRED_DEPENDENCIES: dict[str, list[str]] = {
+    "openai": ["openai", "tiktoken"],
+    "anthropic": ["anthropic"],
+}
+
+def validate_dependencies(provider: str):
+    """
+    Validate that the required dependencies for the specified provider are installed.
+
+    Args:
+        provider (str): The name of the provider to validate dependencies for.
+
+    Raises:
+        ImportError: If required dependencies are not installed.
+    """
+    missing_dependencies = []
+    for dependency in _REQUIRED_DEPENDENCIES.get(provider, []):
+        try:
+            __import__(dependency)
+        except ImportError:
+            missing_dependencies.append(dependency)
+
+    if missing_dependencies:
+        raise ImportError(
+            f"Missing dependencies for provider '{provider}': {', '.join(missing_dependencies)}. "
+            f"Install them using 'poetry install --extras {provider}' or 'pip install thinkhub[{provider}]'."
+        )
 
 def get_chat_service(provider: str, **kwargs) -> ChatServiceInterface:
     """
@@ -54,6 +81,10 @@ def get_chat_service(provider: str, **kwargs) -> ChatServiceInterface:
     service_class_path = _CHAT_SERVICES.get(provider_lower)
     if not service_class_path:
         raise ProviderNotFoundError(f"Unsupported provider: {provider}")
+
+    # Validate required dependencies
+    validate_dependencies(provider_lower)
+
     try:
         # Dynamically import the service class
         module_name, class_name = service_class_path.rsplit(".", 1)
@@ -62,7 +93,6 @@ def get_chat_service(provider: str, **kwargs) -> ChatServiceInterface:
         return service_class(**kwargs)
     except Exception as e:
         raise ChatServiceError(f"Failed to initialize provider {provider}: {e}") from e
-
 
 def get_available_chat_providers() -> list[str]:
     """Get a list of available chat providers."""
