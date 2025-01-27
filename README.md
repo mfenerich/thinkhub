@@ -4,11 +4,12 @@ ThinkHub is a Python-based framework that provides a unified interface for inter
 
 ## Key Features
 
-- **Multi-Service Integration**: Interact seamlessly with multiple AI services (e.g., chat, transcription).
+- **Lazy Loading**: Only loads the dependencies required for the selected service, reducing memory and installation overhead.
+- **Multi-Service Integration**: Interact seamlessly with multiple AI services (e.g., chat, transcription, image processing).
 - **Plugin System**: Register and use custom classes to extend functionality.
 - **Dynamic Configuration**: Load and manage configurations with environment variable overrides.
 - **Error Handling**: Robust exception system for identifying and managing provider-related issues.
-- **Poetry Support**: Modern dependency and environment management with Poetry.
+- **Poetry and pip Support**: Flexible dependency and environment management.
 - **Python 3.11+**: Leverages the latest features of Python for performance and simplicity.
 
 ---
@@ -23,45 +24,102 @@ ThinkHub is a Python-based framework that provides a unified interface for inter
 - **OpenAI**: Supporting models like `gpt-4` and `gpt-3.5`.
 - **Anthropic**: Supporting `Claude.ai`.
 
-### **TODO**
-#### Transcription
-- **AWS**: Add support for [Amazon Transcribe](https://aws.amazon.com/transcribe/).
-- **Local service**: Integrate with [OpenAI Whisper](https://github.com/openai/whisper) for local transcription.
-- **TBD**: Other services under consideration.
-
-#### Chat
-- **Gemini**: Add support for Google's Gemini models.
-- **TBD**: Other services under consideration.
-
-### **Future Plans**
-- More features to be planned and implemented.
+### **Image Processing**
+- **OpenAI**: Analyze and process images with AI models.
 
 ---
 
 ## Installation
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/mfenerich/thinkhub.git
-   cd thinkhub
-   ```
+ThinkHub uses a lazy-loading strategy to optimize memory usage and avoid installing unused dependencies. You can install ThinkHub using either **Poetry** or **pip**, as shown below:
 
-2. **Install dependencies with Poetry:**
-   Ensure Poetry is installed on your system. Then run:
-   ```bash
-   poetry install
-   ```
+### 1. **Install the Base Library**
+   - **Poetry**:
+     ```bash
+     poetry add /path/to/thinkhub/dist/thinkhub-0.3.1-py3-none-any.whl
+     ```
+   - **pip**:
+     ```bash
+     pip install /path/to/thinkhub/dist/thinkhub-0.3.1-py3-none-any.whl
+     ```
 
-3. **Activate the virtual environment:**
-   ```bash
-   poetry shell
-   ```
+### 2. **Install with Specific Extras**
+   Install only the required dependencies based on the service(s) you plan to use:
+
+   - **OpenAI Chat**:
+     - **Poetry**:
+       ```bash
+       poetry add /path/to/thinkhub/dist/thinkhub-0.3.1-py3-none-any.whl --extras openai
+       ```
+     - **pip**:
+       ```bash
+       pip install thinkhub[openai]
+       ```
+
+   - **Google Transcription**:
+     - **Poetry**:
+       ```bash
+       poetry add /path/to/thinkhub/dist/thinkhub-0.3.1-py3-none-any.whl --extras google
+       ```
+     - **pip**:
+       ```bash
+       pip install thinkhub[google]
+       ```
+
+   - **Anthropic Chat**:
+     - **Poetry**:
+       ```bash
+       poetry add /path/to/thinkhub/dist/thinkhub-0.3.1-py3-none-any.whl --extras anthropic
+       ```
+     - **pip**:
+       ```bash
+       pip install thinkhub[anthropic]
+       ```
+
+   - **Multiple Services** (e.g., OpenAI and Anthropic):
+     - **Poetry**:
+       ```bash
+       poetry add /path/to/thinkhub/dist/thinkhub-0.3.1-py3-none-any.whl --extras openai --extras anthropic
+       ```
+     - **pip**:
+       ```bash
+       pip install thinkhub[openai,anthropic]
+       ```
+
+### 3. **Install All Services**
+   If you want to install all available services:
+   - **Poetry**:
+     ```bash
+     poetry add /path/to/thinkhub/dist/thinkhub-0.3.1-py3-none-any.whl --extras all
+     ```
+   - **pip**:
+     ```bash
+     pip install thinkhub[all]
+     ```
+
+### 4. **Activate the Virtual Environment**
+   - **Poetry**:
+     ```bash
+     poetry shell
+     ```
 
 ---
 
 ## Usage
 
-> **Note**: This library currently supports asynchronous calls only because it was originally designed for an internal project. Synchronous calls will be added in the near future.
+### **Lazy Loading**
+
+ThinkHub uses lazy loading to dynamically import the dependencies required for a specific provider. This means that:
+
+1. **Dependencies are only loaded when needed.**
+2. **Missing dependencies are flagged with clear error messages.**
+
+Example:
+If you attempt to use OpenAI services without the `openai` extra installed, ThinkHub will raise an error like this:
+```plaintext
+ImportError: Missing dependencies for provider 'openai': tiktoken. 
+Install them using 'poetry install --extras openai' or 'pip install thinkhub[openai]'.
+```
 
 ### **Chat Services**
 To use a chat service like OpenAI:
@@ -83,86 +141,47 @@ result = await transcription_service.transcribe("path/to/audio.flac")
 print(result)
 ```
 
-### **Registering Custom Plugins**
-
-ThinkHub allows users to create and register their own services by extending the base classes and utilizing the factory functions (`get_chat_service` and `get_transcription_service`).
-
-#### Example: Registering a Custom Chat Service
-
-To register a custom chat service, extend the base class `ChatServiceInterface` and implement its methods:
+### **Image Processing with OpenAI**
+ThinkHub supports image processing with OpenAI. Here’s an example of how to process multiple images asynchronously:
 
 ```python
-from thinkhub.chat.base import ChatServiceInterface
-from thinkhub.chat import register_chat_service
-
-class CustomChatService(ChatServiceInterface):
-    """A custom implementation of a chat service."""
-    
-    def __init__(self, **kwargs):
-        self.custom_param = kwargs.get("custom_param", "default_value")
-    
-    async def stream_chat_response(self, input_data, system_prompt=""):
-        yield f"Custom response to: {input_data}"
-
-# Register the service
-register_chat_service("custom", CustomChatService)
-```
-
-#### Usage
-Once registered, the custom service can be retrieved via `get_chat_service`:
-
-```python
+import asyncio
 from thinkhub.chat import get_chat_service
 
-chat_service = get_chat_service("custom", custom_param="example")
-async for response in chat_service.stream_chat_response("Hello!"):
-    print(response)
-```
+async def process_image_with_openai(image_payloads):
+    chat_service = get_chat_service("openai", model="gpt-4")
+    async for response in chat_service.stream_chat_response(
+        input_data=image_payloads, 
+        system_prompt="Analyze these images."
+    ):
+        print(response)
 
-#### Example: Registering a Custom Transcription Service
+# Prepare image payloads
+image_payloads = [{"image_path": "path/to/image1.jpg"}, {"image_path": "path/to/image2.jpg"}]
 
-Similarly, transcription services can be registered by extending the `TranscriptionServiceInterface`:
-
-```python
-from thinkhub.transcription.base import TranscriptionServiceInterface
-from thinkhub.transcription import register_transcription_service
-
-class CustomTranscriptionService(TranscriptionServiceInterface):
-    """A custom implementation of a transcription service."""
-    
-    async def transcribe(self, file_path):
-        return f"Transcription for {file_path}"
-
-# Register the service
-register_transcription_service("custom", CustomTranscriptionService)
-```
-
-#### Usage
-The custom transcription service can then be retrieved via `get_transcription_service`:
-
-```python
-from thinkhub.transcription import get_transcription_service
-
-transcription_service = get_transcription_service("custom")
-result = await transcription_service.transcribe("path/to/file")
-print(result)
+# Process images with OpenAI
+asyncio.run(process_image_with_openai(image_payloads))
 ```
 
 ---
 
 ## Error Handling
 
-Custom exceptions are provided to make debugging easier:
+ThinkHub includes robust error handling to simplify debugging and configuration:
 
-- **BaseServiceError**: Base class for all service-related errors.
-- **ProviderNotFoundError**: Raised when a requested provider is not found.
+- **Dependency Validation**:
+  ThinkHub will check for required dependencies dynamically and provide clear installation instructions.
+
+- **Custom Exceptions**:
+  - `ProviderNotFoundError`: Raised when a requested provider is not found.
+  - `ImportError`: Raised when dependencies for a provider are missing.
 
 Example:
 ```python
 from thinkhub.exceptions import ProviderNotFoundError
 
 try:
-    raise ProviderNotFoundError("Provider not found!")
+    service = get_chat_service("unsupported_provider")
 except ProviderNotFoundError as e:
     print(e)
 ```
@@ -172,27 +191,19 @@ except ProviderNotFoundError as e:
 ## Development
 
 1. **Run Tests:**
-   Add your tests in the appropriate directories and run:
    ```bash
    poetry run pytest
    ```
 
 2. **Code Linting:**
-   Ensure code quality with:
    ```bash
-   poetry run flake8
+   poetry run ruff check .
    ```
 
 3. **Build the Project:**
    ```bash
    poetry build
    ```
-
----
-
-## Contributing
-
-Contributions are welcome! Please fork the repository and create a pull request for any changes.
 
 ---
 
@@ -205,4 +216,3 @@ This project is licensed under the [MIT License](LICENSE).
 ## Acknowledgments
 
 Special thanks to the open-source community for providing the tools and libraries that made this project possible.
-

@@ -9,53 +9,66 @@ It includes:
 
 import logging
 
-from thinkhub.chat.anthropic_chat import AnthropicChatService
 from thinkhub.exceptions import ProviderNotFoundError
+from thinkhub.utils import validate_dependencies
 
 from .base import ChatServiceInterface
 from .exceptions import ChatServiceError
-from .openai_chat import OpenAIChatService
 
 logger = logging.getLogger(__name__)
 
-_CHAT_SERVICES: dict[str, type[ChatServiceInterface]] = {
-    "openai": OpenAIChatService,  # Pre-register OpenAI service
-    "anthropic": AnthropicChatService,  # Pre-register OpenAI service
+_CHAT_SERVICES: dict[str, str] = {
+    "openai": "thinkhub.chat.openai_chat.OpenAIChatService",
+    "anthropic": "thinkhub.chat.anthropic_chat.AnthropicChatService",
+}
+
+_REQUIRED_DEPENDENCIES: dict[str, list[str]] = {
+    "openai": ["openai", "tiktoken"],
+    "anthropic": ["anthropic"],
 }
 
 
-def register_chat_service(name: str):
-    """Register a chat service dynamically."""
-
-    def decorator(service_class: type[ChatServiceInterface]):
-        name_lower = name.lower()
-        if name_lower in _CHAT_SERVICES:
-            logger.warning(
-                f"Overriding chat service: {name}. Previous service will be replaced."
-            )
-        _CHAT_SERVICES[name_lower] = service_class
-        logger.info(f"Registered chat service: {name}")
-        return service_class
-
-    return decorator
-
-
 def get_chat_service(provider: str, **kwargs) -> ChatServiceInterface:
-    """Get the appropriate chat service.
+    """
+    Retrieve a chat service instance dynamically based on the provider name.
+
+    This function lazily loads and initializes the requested chat service to optimize memory usage
+    and reduce unnecessary imports at the module level. The chat services are registered with their
+    full module paths in the `_CHAT_SERVICES` dictionary and loaded only when needed.
 
     Args:
-        provider: Name of the chat service provider.
-        **kwargs: Arguments passed to the service constructor.
+        provider (str):
+            The name of the chat service provider to retrieve.
+            Example values include "openai" and "anthropic".
+        **kwargs:
+            Additional keyword arguments to pass to the service's constructor when instantiated.
+
+    Returns:
+        ChatServiceInterface:
+            An instance of the chat service corresponding to the requested provider.
 
     Raises:
-        ProviderNotFoundError: If the provider is not registered.
-        ChatServiceError: If there is an issue initializing the provider.
+        ProviderNotFoundError:
+            Raised if the requested provider is not registered in the `_CHAT_SERVICES` dictionary.
+        ChatServiceError:
+            Raised if there is an issue importing the service class or initializing the provider.
+
+    Example:
+        >>> service = get_chat_service("openai", model="gpt-4")
     """
     provider_lower = provider.lower()
-    service_class = _CHAT_SERVICES.get(provider_lower)
-    if service_class is None:
+    service_class_path = _CHAT_SERVICES.get(provider_lower)
+    if not service_class_path:
         raise ProviderNotFoundError(f"Unsupported provider: {provider}")
+
+    # Validate required dependencies
+    validate_dependencies(provider_lower, _REQUIRED_DEPENDENCIES)
+
     try:
+        # Dynamically import the service class
+        module_name, class_name = service_class_path.rsplit(".", 1)
+        module = __import__(module_name, fromlist=[class_name])
+        service_class = getattr(module, class_name)
         return service_class(**kwargs)
     except Exception as e:
         raise ChatServiceError(f"Failed to initialize provider {provider}: {e}") from e

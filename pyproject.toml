@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "thinkhub"
-version = "0.3.1"
+version = "0.3.2"
 description = "ThinkHub is a versatile Python framework that provides a unified interface for interacting with multiple AI services, such as chat and transcription. It simplifies the integration process and allows developers to extend its functionality by creating and registering custom plugins. ThinkHub is designed for flexibility and scalability, making it an ideal choice for projects that rely on AI-driven services."
 authors = ["Marcel Fenerich <marcel@feneri.ch>"]
 readme = "README.md"
@@ -19,10 +19,18 @@ classifiers = [
 [tool.poetry.dependencies]
 python = "^3.11"
 decouple = "^0.0.7"
-google-cloud-speech = "^2.30.0"
 aiofiles = "^24.1.0"
-anthropic = "^0.45.0"
 tenacity = "^9.0.0"
+openai = {version = "^1.60.1", optional = true}
+google-cloud-speech = {version = "^2.30.0", optional = true}
+anthropic = {version = "^0.45.0", optional = true}
+tiktoken = {version = "^0.8.0", optional = true}
+
+[tool.poetry.extras]
+openai = ["openai", "tiktoken"]
+google = ["google-cloud-speech"]
+anthropic = ["anthropic"]
+all = ["openai", "tiktoken", "google-cloud-speech", "anthropic"]
 
 [tool.poetry.dev-dependencies]
 coverage = "7.6.10"
