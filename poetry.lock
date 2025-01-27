@@ -1514,10 +1514,10 @@ test = ["covdefaults (>=2.3)", "coverage (>=7.2.7)", "coverage-enable-subprocess
 [extras]
 all = ["anthropic", "google-cloud-speech", "openai", "tiktoken"]
 anthropic = ["anthropic"]
-google = ["google-cloud-speech"]
+google = ["google-cloud-speech", "google-cloud-storage"]
 openai = ["openai", "tiktoken"]
 
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "53a164d9d81dae5ad303935dada46c23d6e5670367225852e97fdfb45333b541"
+content-hash = "561f573de652ff1e53bceea7656fdf3831c174d7e70894b20e04e5595dc92bb5"
