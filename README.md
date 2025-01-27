@@ -1,5 +1,7 @@
 # ThinkHub
 
+![ThinkHub Logo](assets/logo.png)
+
 ThinkHub is a Python-based framework that provides a unified interface for interacting with multiple AI services. Designed for extensibility, users can integrate new services by creating and registering their own plugins or classes. The project simplifies configurations, supports multiple providers, and prioritizes user-friendly customization.
 
 ## Key Features
