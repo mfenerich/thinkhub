@@ -5,10 +5,12 @@ Provides asynchronous transcription functionality using Google APIs.
 """
 
 import os
+import warnings
 from typing import Optional
 
 import aiofiles
-from google.cloud import speech_v1
+from google.cloud import speech_v1, storage
+from pydub import AudioSegment
 
 from thinkhub.transcription.base import TranscriptionServiceInterface
 from thinkhub.transcription.exceptions import (
@@ -23,7 +25,9 @@ from thinkhub.transcription.exceptions import (
 class GoogleTranscriptionService(TranscriptionServiceInterface):
     """Transcribing audio using Google Cloud Speech-to-Text asynchronously."""
 
-    def __init__(self, sample_rate: int = 24000, bucket_name: str = "") -> None:
+    def __init__(
+        self, sample_rate: int = 24000, bucket_name: Optional[str] = None
+    ) -> None:
         """
         Initialize the GoogleTranscriptionService with the given parameters.
 
@@ -35,9 +39,13 @@ class GoogleTranscriptionService(TranscriptionServiceInterface):
         self.bucket_name = bucket_name
         self.sample_rate = sample_rate
 
-        # Ensure Google credentials environment variable is set
-        self._load_google_credentials()
+        if not bucket_name:
+            warnings.warn(
+                "Bucket name not provided. Audios longer than 1 minute cannot be transcribed.",
+                UserWarning,
+            )
 
+        self._load_google_credentials()
         # Initialize the client (asynchronously).
         # If you prefer to explicitly initialize later, remove this line
         # and call `await self.initialize_client()` manually.
@@ -87,12 +95,49 @@ class GoogleTranscriptionService(TranscriptionServiceInterface):
         """
         # Because this is an async method, if you call it from __init__, you need
         # an async context. Typically, we do lazy initialization in `transcribe`.
+
         try:
             self.client = speech_v1.SpeechAsyncClient()
         except Exception as e:
             raise ClientInitializationError(
                 f"Failed to initialize Google Speech client: {e}"
             ) from e
+
+    def upload_to_gcs(self, file_path: str, destination_blob_name: str) -> str:
+        """Upload a file to Google Cloud Storage."""
+        if not self.bucket_name:
+            raise TranscriptionJobError(
+                "Bucket name is not set. Cannot upload files to GCS."
+            )
+
+        try:
+            storage_client = storage.Client()
+            bucket = storage_client.bucket(self.bucket_name)
+            blob = bucket.blob(destination_blob_name)
+
+            blob.upload_from_filename(file_path)
+
+            return f"gs://{self.bucket_name}/{destination_blob_name}"
+        except Exception as e:
+            raise TranscriptionJobError(f"Failed to upload file to GCS: {e}")
+
+    def _create_recognition_config(
+        self, audio_content: Optional[bytes] = None, gcs_uri: Optional[str] = None
+    ) -> speech_v1.RecognitionAudio:
+        if gcs_uri:
+            audio = speech_v1.RecognitionAudio(uri=gcs_uri)
+        elif audio_content:
+            audio = speech_v1.RecognitionAudio(content=audio_content)
+        else:
+            raise ValueError("Either audio_content or gcs_uri must be provided.")
+
+        config = speech_v1.RecognitionConfig(
+            encoding=speech_v1.RecognitionConfig.AudioEncoding.FLAC,
+            sample_rate_hertz=self.sample_rate,
+            language_code="en-US",
+        )
+
+        return config, audio
 
     async def transcribe(self, file_path: str) -> str:
         """
@@ -110,6 +155,7 @@ class GoogleTranscriptionService(TranscriptionServiceInterface):
             TranscriptionJobError: If the transcription process fails.
         """
         # Ensure client is initialized
+
         if self.client is None:
             await self.initialize_client()
 
@@ -117,26 +163,37 @@ class GoogleTranscriptionService(TranscriptionServiceInterface):
             raise AudioFileNotFoundError(f"Audio file not found: {file_path}")
 
         try:
-            # Use aiofiles for non-blocking file operations
-            async with aiofiles.open(file_path, "rb") as f:
-                audio_content = await f.read()
+            audio_segment = AudioSegment.from_file(file_path)
+            duration_seconds = len(audio_segment) / 1000
 
-            audio = speech_v1.RecognitionAudio(content=audio_content)
-            config = speech_v1.RecognitionConfig(
-                encoding=speech_v1.RecognitionConfig.AudioEncoding.FLAC,
-                sample_rate_hertz=self.sample_rate,
-                language_code="en-US",
-            )
+            if duration_seconds > 60:
+                if not self.bucket_name:
+                    raise TranscriptionJobError(
+                        "Bucket name is required to transcribe audio files longer than 1 minute."
+                    )
 
-            # Perform asynchronous recognition
-            response = await self.client.recognize(config=config, audio=audio)
+                temp_audio_path = "temp_audio.flac"
+                audio_segment.export(temp_audio_path, format="flac")
+                gcs_uri = self.upload_to_gcs(temp_audio_path, "temp_audio.flac")
 
-            # Extract transcripts from response
+                config, audio = self._create_recognition_config(gcs_uri=gcs_uri)
+                operation = await self.client.long_running_recognize(
+                    config=config, audio=audio
+                )
+                response = await operation.result(timeout=300)
+            else:
+                async with aiofiles.open(file_path, "rb") as f:
+                    audio_content = await f.read()
+
+                config, audio = self._create_recognition_config(
+                    audio_content=audio_content
+                )
+                response = await self.client.recognize(config=config, audio=audio)
+
             transcription = "".join(
                 result.alternatives[0].transcript for result in response.results
             )
 
-            # If there's no transcription at all, return a more explicit message
             return transcription if transcription else "No transcription available."
 
         except Exception as e:

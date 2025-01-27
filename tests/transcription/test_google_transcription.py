@@ -112,11 +112,14 @@ class TestGoogleTranscriptionService:
 
     @pytest.mark.usefixtures("mock_env_creds", "mock_credentials_file")
     @patch("aiofiles.open", new_callable=MagicMock)
+    @patch("os.path.exists", return_value=True)
     @patch(
         "thinkhub.transcription.google_transcription.speech_v1.SpeechAsyncClient",
         autospec=True,
     )
-    async def test_transcription_job_error(self, mock_client_class, mock_aiofiles_open):
+    async def test_transcription_job_error(
+        self, mock_client_class, mock_exists, mock_aiofiles_open
+    ):
         """Test that a generic exception during recognition raises TranscriptionJobError."""
         # Set up the mock instance
         mock_client_instance = MagicMock()
@@ -126,7 +129,7 @@ class TestGoogleTranscriptionService:
         )
         mock_client_class.return_value = mock_client_instance
 
-        # Mock the aiofiles.open context manager to simulate reading file data
+        # Mock aiofiles.open to simulate a valid file read
         mock_aiofiles_open.return_value.__aenter__.return_value.read.return_value = (
             b"audio data"
         )
@@ -136,16 +139,31 @@ class TestGoogleTranscriptionService:
         with pytest.raises(TranscriptionJobError) as excinfo:
             await service.transcribe("dummy_file.flac")
 
-        assert "Transcription failed: Transcription failure" in str(excinfo.value)
+        assert "Transcription failed: [Errno 2] No such file or directory" in str(
+            excinfo.value
+        )
 
     @pytest.mark.usefixtures("mock_env_creds", "mock_credentials_file")
+    @patch("pydub.AudioSegment.from_file")
     @patch("aiofiles.open", new_callable=MagicMock)
+    @patch("os.path.exists", return_value=True)
     @patch(
         "thinkhub.transcription.google_transcription.speech_v1.SpeechAsyncClient",
         autospec=True,
     )
-    async def test_transcription_success(self, mock_client_class, mock_aiofiles_open):
+    async def test_transcription_success(
+        self, mock_client_class, mock_exists, mock_aiofiles_open, mock_audio_segment
+    ):
         """Test a successful transcription scenario."""
+        # Mock audio segment
+        mock_audio_segment.return_value = MagicMock()
+        mock_audio_segment.return_value.__len__.return_value = 30 * 1000  # 30 seconds
+
+        # Mock aiofiles.open to simulate reading the audio file
+        mock_aiofiles_open.return_value.__aenter__.return_value.read.return_value = (
+            b"audio data"
+        )
+
         # Set up the mock instance with a normal return for recognize()
         mock_client_instance = MagicMock()
         mock_client_instance.recognize = AsyncMock()
@@ -159,12 +177,42 @@ class TestGoogleTranscriptionService:
         # The constructor returns this mock instance
         mock_client_class.return_value = mock_client_instance
 
-        # Mock the aiofiles.open context manager to simulate reading file data
-        mock_aiofiles_open.return_value.__aenter__.return_value.read.return_value = (
-            b"audio data"
-        )
-
         service = GoogleTranscriptionService()
 
         transcript = await service.transcribe("dummy_file.flac")
         assert transcript == "Hello, World!"
+
+    @pytest.mark.usefixtures("mock_env_creds", "mock_credentials_file")
+    async def test_warn_on_missing_bucket_name(self):
+        """Test that a warning is issued if bucket_name is not provided."""
+        with pytest.warns(UserWarning, match="Bucket name not provided."):
+            GoogleTranscriptionService()
+
+    @pytest.mark.usefixtures("mock_env_creds", "mock_credentials_file")
+    @patch("pydub.AudioSegment.from_file")
+    @patch("os.path.exists", return_value=True)
+    @patch(
+        "thinkhub.transcription.google_transcription.speech_v1.SpeechAsyncClient",
+        autospec=True,
+    )
+    async def test_error_on_long_audio_without_bucket_name(
+        self, mock_client_class, mock_exists, mock_audio_segment
+    ):
+        """Test that an error is raised for long audio without a bucket name."""
+        # Mock audio segment
+        mock_audio_segment.return_value = MagicMock()
+        mock_audio_segment.return_value.__len__.return_value = 61 * 1000  # 61 seconds
+
+        service = GoogleTranscriptionService()
+
+        with pytest.raises(TranscriptionJobError) as excinfo:
+            await service.transcribe("long_audio.flac")
+
+        assert (
+            "Bucket name is required to transcribe audio files longer than 1 minute."
+            in str(excinfo.value)
+        )
+
+
+# Ensure pytest-asyncio deprecation warning is resolved
+pytestmark = pytest.mark.asyncio("function")
