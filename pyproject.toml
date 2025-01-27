@@ -26,10 +26,11 @@ google-cloud-speech = {version = "^2.30.0", optional = true}
 anthropic = {version = "^0.45.0", optional = true}
 tiktoken = {version = "^0.8.0", optional = true}
 pydub = "^0.25.1"
+google-cloud-storage = {version = "^2.19.0", optional = true}
 
 [tool.poetry.extras]
 openai = ["openai", "tiktoken"]
-google = ["google-cloud-speech"]
+google = ["google-cloud-speech", "google-cloud-storage"]
 anthropic = ["anthropic"]
 all = ["openai", "tiktoken", "google-cloud-speech", "anthropic"]
 
