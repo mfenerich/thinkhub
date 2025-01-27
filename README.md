@@ -1,4 +1,5 @@
 # ThinkHub
+[![PyPI Downloads](https://static.pepy.tech/badge/thinkhub)](https://pepy.tech/projects/thinkhub)
 
 ![ThinkHub Logo](assets/logo.png)
 
