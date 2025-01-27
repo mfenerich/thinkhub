@@ -36,11 +36,12 @@ jobs:
         id: read_version
         run: |
           # Grab the version value from pyproject.toml:
-          version=$(grep -Po 'version\s*=\s*"\K[^"]+' pyproject.toml)
+          # Use Python to parse the TOML file reliably
+          version=$(python -c "import toml; print(toml.load(open('pyproject.toml'))['tool']['poetry']['version'])")
           echo "Version read from pyproject.toml: $version"
 
           # Expose 'version' as an output for subsequent steps/jobs:
-          echo "version=$version" >> $GITHUB_OUTPUT
+          echo "version=$version" >> $GITHUB_OUTPUT_PATHS
 
       - name: Create GitHub Release
         if: ${{ success() }}
@@ -66,6 +67,10 @@ jobs:
         uses: ./.github/actions/setup-environment
         with:
           python-version: "3.11"
+
+      - name: Install Dependencies
+        run: |
+          pip install toml
 
       - name: Configure Poetry Authentication
         env:
