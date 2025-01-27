@@ -25,6 +25,7 @@ _REQUIRED_DEPENDENCIES: dict[str, list[str]] = {
     "openai": ["openai", "tiktoken"],
 }
 
+
 def register_transcription_service(name: str):
     """Decorate to register a transcription service."""
 
@@ -41,6 +42,7 @@ def register_transcription_service(name: str):
         return service_class
 
     return decorator
+
 
 def get_transcription_service(provider: str, **kwargs) -> TranscriptionServiceInterface:
     """
@@ -89,6 +91,7 @@ def get_transcription_service(provider: str, **kwargs) -> TranscriptionServiceIn
         raise TranscriptionServiceError(
             f"Failed to initialize provider {provider}: {e}"
         ) from e
+
 
 def get_available_providers() -> list[str]:
     """Return a list of available transcription providers."""

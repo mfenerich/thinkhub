@@ -27,6 +27,7 @@ _REQUIRED_DEPENDENCIES: dict[str, list[str]] = {
     "anthropic": ["anthropic"],
 }
 
+
 def get_chat_service(provider: str, **kwargs) -> ChatServiceInterface:
     """
     Retrieve a chat service instance dynamically based on the provider name.
@@ -71,6 +72,7 @@ def get_chat_service(provider: str, **kwargs) -> ChatServiceInterface:
         return service_class(**kwargs)
     except Exception as e:
         raise ChatServiceError(f"Failed to initialize provider {provider}: {e}") from e
+
 
 def get_available_chat_providers() -> list[str]:
     """Get a list of available chat providers."""

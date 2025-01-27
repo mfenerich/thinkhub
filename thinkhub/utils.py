@@ -1,3 +1,6 @@
+"""Utility functions for ThinkHub."""
+
+
 def validate_dependencies(provider: str, req_deps: dict[str, list[str]]):
     """
     Validate that the required dependencies for the specified provider are installed.
