@@ -36,11 +36,11 @@ ThinkHub uses a lazy-loading strategy to optimize memory usage and avoid install
 ### 1. **Install the Base Library**
    - **Poetry**:
      ```bash
-     poetry add /path/to/thinkhub/dist/thinkhub-0.3.1-py3-none-any.whl
+     poetry add thinkhub
      ```
    - **pip**:
      ```bash
-     pip install /path/to/thinkhub/dist/thinkhub-0.3.1-py3-none-any.whl
+     pip install thinkhub
      ```
 
 ### 2. **Install with Specific Extras**
@@ -49,7 +49,7 @@ ThinkHub uses a lazy-loading strategy to optimize memory usage and avoid install
    - **OpenAI Chat**:
      - **Poetry**:
        ```bash
-       poetry add /path/to/thinkhub/dist/thinkhub-0.3.1-py3-none-any.whl --extras openai
+       poetry add thinkhub --extras openai
        ```
      - **pip**:
        ```bash
@@ -59,7 +59,7 @@ ThinkHub uses a lazy-loading strategy to optimize memory usage and avoid install
    - **Google Transcription**:
      - **Poetry**:
        ```bash
-       poetry add /path/to/thinkhub/dist/thinkhub-0.3.1-py3-none-any.whl --extras google
+       poetry add thinkhub --extras google
        ```
      - **pip**:
        ```bash
@@ -69,7 +69,7 @@ ThinkHub uses a lazy-loading strategy to optimize memory usage and avoid install
    - **Anthropic Chat**:
      - **Poetry**:
        ```bash
-       poetry add /path/to/thinkhub/dist/thinkhub-0.3.1-py3-none-any.whl --extras anthropic
+       poetry add thinkhub --extras anthropic
        ```
      - **pip**:
        ```bash
@@ -79,7 +79,7 @@ ThinkHub uses a lazy-loading strategy to optimize memory usage and avoid install
    - **Multiple Services** (e.g., OpenAI and Anthropic):
      - **Poetry**:
        ```bash
-       poetry add /path/to/thinkhub/dist/thinkhub-0.3.1-py3-none-any.whl --extras openai --extras anthropic
+       poetry add thinkhub --extras openai --extras anthropic
        ```
      - **pip**:
        ```bash
@@ -90,7 +90,7 @@ ThinkHub uses a lazy-loading strategy to optimize memory usage and avoid install
    If you want to install all available services:
    - **Poetry**:
      ```bash
-     poetry add /path/to/thinkhub/dist/thinkhub-0.3.1-py3-none-any.whl --extras all
+     poetry add thinkhub --extras all
      ```
    - **pip**:
      ```bash
