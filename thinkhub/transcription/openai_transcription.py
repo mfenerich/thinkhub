@@ -10,7 +10,7 @@ import os
 from typing import Optional
 
 import aiofiles
-from openai import AsyncOpenAI, APIConnectionError, RateLimitError
+from openai import APIConnectionError, AsyncOpenAI, RateLimitError
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 from thinkhub.transcription.base import TranscriptionServiceInterface
