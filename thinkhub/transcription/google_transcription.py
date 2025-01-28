@@ -4,13 +4,15 @@ Module for Google Cloud Speech-to-Text transcription service.
 Provides asynchronous transcription functionality using Google APIs.
 """
 
+import logging
 import os
-import warnings
 from typing import Optional
 
 import aiofiles
+from google.api_core.exceptions import GoogleAPICallError, RetryError
 from google.cloud import speech_v1, storage
 from pydub import AudioSegment
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 from thinkhub.transcription.base import TranscriptionServiceInterface
 from thinkhub.transcription.exceptions import (
@@ -26,44 +28,38 @@ class GoogleTranscriptionService(TranscriptionServiceInterface):
     """Transcribing audio using Google Cloud Speech-to-Text asynchronously."""
 
     def __init__(
-        self, sample_rate: int = 24000, bucket_name: Optional[str] = None
+        self,
+        sample_rate: int = 24000,
+        bucket_name: Optional[str] = None,
+        language_code: str = "en-US",
+        logging_level: int = logging.INFO,
     ) -> None:
         """
         Initialize the GoogleTranscriptionService with the given parameters.
 
         Args:
             sample_rate (int): The sampling rate of the input audio. Default is 24000.
-            (Optional) The name of a Google Cloud Storage bucket if needed.
+            bucket_name (Optional[str]): The name of a Google Cloud Storage bucket if needed.
+            language_code (str): The language code for transcription. Default is "en-US".
+            logging_level (int): Logging configuration.
         """
+        # Logging setup
+        logging.basicConfig(level=logging_level)
+        self.logger = logging.getLogger(__name__)
+
+        # Client and configuration
         self.client: Optional[speech_v1.SpeechAsyncClient] = None
         self.bucket_name = bucket_name
         self.sample_rate = sample_rate
+        self.language_code = language_code
+
+        # Validate Google credentials
+        self._load_google_credentials()
 
         if not bucket_name:
-            warnings.warn(
-                "Bucket name not provided. Audios longer than 1 minute cannot be transcribed.",
-                UserWarning,
+            self.logger.warning(
+                "Bucket name not provided. Audios longer than 1 minute cannot be transcribed."
             )
-
-        self._load_google_credentials()
-        # Initialize the client (asynchronously).
-        # If you prefer to explicitly initialize later, remove this line
-        # and call `await self.initialize_client()` manually.
-        # But be aware that `__init__` cannot be truly async.
-        # Instead, you could do lazy initialization on first use in `transcribe`.
-        # For demonstration, we show how to handle it separately.
-        # In practice, you might leave it to be called in `transcribe`
-        # if you need real async initialization.
-        #
-        # Example if you want lazy initialization:
-        #     pass
-        #
-        # Otherwise, to do it here (blocking call), see the comment
-        # inside initialize_client.
-        #
-        # However, because `initialize_client` is async, we typically
-        # won't call it directly in __init__.
-        # We'll rely on the check in `transcribe` to do it for us.
 
     def _load_google_credentials(self) -> None:
         """
@@ -93,18 +89,34 @@ class GoogleTranscriptionService(TranscriptionServiceInterface):
         Raises:
             ClientInitializationError: If the client fails to initialize.
         """
-        # Because this is an async method, if you call it from __init__, you need
-        # an async context. Typically, we do lazy initialization in `transcribe`.
-
         try:
             self.client = speech_v1.SpeechAsyncClient()
+            self.logger.info("Google Speech client initialized successfully.")
         except Exception as e:
+            self.logger.error(f"Failed to initialize Google Speech client: {e}")
             raise ClientInitializationError(
                 f"Failed to initialize Google Speech client: {e}"
             ) from e
 
-    def upload_to_gcs(self, file_path: str, destination_blob_name: str) -> str:
-        """Upload a file to Google Cloud Storage."""
+    @retry(
+        stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10)
+    )
+    async def _safe_upload_to_gcs(
+        self, file_path: str, destination_blob_name: str
+    ) -> str:
+        """
+        Safely upload a file to Google Cloud Storage with retry and logging.
+
+        Args:
+            file_path (str): The path to the file to upload.
+            destination_blob_name (str): The name of the blob in GCS.
+
+        Returns:
+            str: The GCS URI of the uploaded file.
+
+        Raises:
+            TranscriptionJobError: If the upload fails.
+        """
         if not self.bucket_name:
             raise TranscriptionJobError(
                 "Bucket name is not set. Cannot upload files to GCS."
@@ -116,14 +128,29 @@ class GoogleTranscriptionService(TranscriptionServiceInterface):
             blob = bucket.blob(destination_blob_name)
 
             blob.upload_from_filename(file_path)
+            self.logger.info(f"File uploaded to GCS: {destination_blob_name}")
 
             return f"gs://{self.bucket_name}/{destination_blob_name}"
         except Exception as e:
-            raise TranscriptionJobError(f"Failed to upload file to GCS: {e}")
+            self.logger.error(f"Failed to upload file to GCS: {e}")
+            raise TranscriptionJobError(f"Failed to upload file to GCS: {e}") from e
 
     def _create_recognition_config(
         self, audio_content: Optional[bytes] = None, gcs_uri: Optional[str] = None
-    ) -> speech_v1.RecognitionAudio:
+    ) -> tuple[speech_v1.RecognitionConfig, speech_v1.RecognitionAudio]:
+        """
+        Create a recognition config and audio object for the Google Speech API.
+
+        Args:
+            audio_content (Optional[bytes]): The audio content as bytes.
+            gcs_uri (Optional[str]): The GCS URI of the audio file.
+
+        Returns:
+            tuple: A tuple containing the recognition config and audio objects.
+
+        Raises:
+            ValueError: If neither audio_content nor gcs_uri is provided.
+        """
         if gcs_uri:
             audio = speech_v1.RecognitionAudio(uri=gcs_uri)
         elif audio_content:
@@ -134,10 +161,43 @@ class GoogleTranscriptionService(TranscriptionServiceInterface):
         config = speech_v1.RecognitionConfig(
             encoding=speech_v1.RecognitionConfig.AudioEncoding.FLAC,
             sample_rate_hertz=self.sample_rate,
-            language_code="en-US",
+            language_code=self.language_code,
         )
 
         return config, audio
+
+    @retry(
+        stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10)
+    )
+    async def _safe_transcription_call(
+        self, config: speech_v1.RecognitionConfig, audio: speech_v1.RecognitionAudio
+    ) -> speech_v1.RecognizeResponse:
+        """
+        Safely call the Google Speech API with retry and logging.
+
+        Args:
+            config: The recognition config.
+            audio: The recognition audio.
+
+        Returns:
+            speech_v1.RecognizeResponse: The response from the Google Speech API.
+
+        Raises:
+            TranscriptionJobError: If the transcription process fails.
+        """
+        try:
+            if audio.uri:
+                operation = await self.client.long_running_recognize(
+                    config=config, audio=audio
+                )
+                response = await operation.result(timeout=300)
+            else:
+                response = await self.client.recognize(config=config, audio=audio)
+
+            return response
+        except (GoogleAPICallError, RetryError) as e:
+            self.logger.error(f"Transcription API call failed: {e}")
+            raise TranscriptionJobError(f"Transcription failed: {e}") from e
 
     async def transcribe(self, file_path: str) -> str:
         """
@@ -154,12 +214,11 @@ class GoogleTranscriptionService(TranscriptionServiceInterface):
             ClientInitializationError: If the client cannot be initialized.
             TranscriptionJobError: If the transcription process fails.
         """
-        # Ensure client is initialized
-
         if self.client is None:
             await self.initialize_client()
 
         if not os.path.exists(file_path):
+            self.logger.error(f"Audio file not found: {file_path}")
             raise AudioFileNotFoundError(f"Audio file not found: {file_path}")
 
         try:
@@ -174,13 +233,11 @@ class GoogleTranscriptionService(TranscriptionServiceInterface):
 
                 temp_audio_path = "temp_audio.flac"
                 audio_segment.export(temp_audio_path, format="flac")
-                gcs_uri = self.upload_to_gcs(temp_audio_path, "temp_audio.flac")
+                gcs_uri = await self._safe_upload_to_gcs(
+                    temp_audio_path, "temp_audio.flac"
+                )
 
                 config, audio = self._create_recognition_config(gcs_uri=gcs_uri)
-                operation = await self.client.long_running_recognize(
-                    config=config, audio=audio
-                )
-                response = await operation.result(timeout=300)
             else:
                 async with aiofiles.open(file_path, "rb") as f:
                     audio_content = await f.read()
@@ -188,7 +245,8 @@ class GoogleTranscriptionService(TranscriptionServiceInterface):
                 config, audio = self._create_recognition_config(
                     audio_content=audio_content
                 )
-                response = await self.client.recognize(config=config, audio=audio)
+
+            response = await self._safe_transcription_call(config, audio)
 
             transcription = "".join(
                 result.alternatives[0].transcript for result in response.results
@@ -197,6 +255,7 @@ class GoogleTranscriptionService(TranscriptionServiceInterface):
             return transcription if transcription else "No transcription available."
 
         except Exception as e:
+            self.logger.error(f"Transcription failed: {e}")
             raise TranscriptionJobError(f"Transcription failed: {e}") from e
 
     async def close(self) -> None:
@@ -204,3 +263,4 @@ class GoogleTranscriptionService(TranscriptionServiceInterface):
         if self.client:
             await self.client.close()
             self.client = None
+            self.logger.info("Google Speech client closed.")

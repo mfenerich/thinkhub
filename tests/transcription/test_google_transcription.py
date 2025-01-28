@@ -185,8 +185,11 @@ class TestGoogleTranscriptionService:
     @pytest.mark.usefixtures("mock_env_creds", "mock_credentials_file")
     async def test_warn_on_missing_bucket_name(self):
         """Test that a warning is issued if bucket_name is not provided."""
-        with pytest.warns(UserWarning, match="Bucket name not provided."):
+        with patch("logging.Logger.warning") as mock_warning:
             GoogleTranscriptionService()
+            mock_warning.assert_called_once_with(
+                "Bucket name not provided. Audios longer than 1 minute cannot be transcribed."
+            )
 
     @pytest.mark.usefixtures("mock_env_creds", "mock_credentials_file")
     @patch("pydub.AudioSegment.from_file")
