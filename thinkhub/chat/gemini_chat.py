@@ -1,3 +1,11 @@
+"""
+This module defines the GeminiChatService class, which implements the ChatServiceInterface for interacting with the Google Gemini API.
+
+The GeminiChatService supports streaming chat responses for both text and
+image inputs, leveraging the 'start_chat' and 'send_message' methods
+of the Google Generative AI library.
+"""
+
 import logging
 import os
 from collections.abc import AsyncGenerator
@@ -49,6 +57,7 @@ class GeminiChatService(ChatServiceInterface):
         Create or reuse the ChatSession if it doesn't exist yet.
 
         Optionally set a system prompt as the first message.
+        Ensure the token count does not exceed the model's limit.
         """
         if self.chat_session is None:
             model = genai.GenerativeModel(model_name=self.model_name)
@@ -59,12 +68,39 @@ class GeminiChatService(ChatServiceInterface):
 
             self.chat_session = model.start_chat(history=history)
             self.logger.debug("Created a new chat session with system prompt.")
+        else:
+            # Check token count and remove old messages if necessary
+            token_count = await self._count_tokens(self.chat_session.history)
+            model_info = genai.get_model(f"models/{self.model_name}")
+            max_tokens = model_info.input_token_limit
+
+            while token_count > max_tokens and len(self.chat_session.history) > 1:
+                # Remove the oldest message (excluding the system prompt)
+                self.chat_session.history.pop(1)
+                token_count = await self._count_tokens(self.chat_session.history)
+                self.logger.debug(
+                    f"Removed old message to reduce token count to {token_count}"
+                )
 
     def _validate_image_input(self, input_data: list[dict[str, str]]) -> bool:
         """Validate that the input is a list of dicts containing 'image_path'."""
         return isinstance(input_data, list) and all(
             isinstance(item, dict) and "image_path" in item for item in input_data
         )
+
+    async def _count_tokens(self, contents) -> int:
+        """
+        Count the number of tokens in the given contents.
+
+        Args:
+            contents: The contents to count tokens for.
+
+        Returns:
+            int: The number of tokens.
+        """
+        model = genai.GenerativeModel(model_name=self.model_name)
+        response = await model.count_tokens_async(contents)
+        return response.total_tokens
 
     async def _prepare_image_input_list(
         self, image_data: list[dict[str, str]], prompt: str
@@ -110,6 +146,18 @@ class GeminiChatService(ChatServiceInterface):
         else:
             raise InvalidInputDataError(
                 "Invalid input format: must be a string or a list of dicts with 'image_path'."
+            )
+
+        # Check token count before sending the message
+        token_count = await self._count_tokens(
+            [*self.chat_session.history, {"role": "user", "parts": user_prompt}]
+        )
+        model_info = genai.get_model(f"models/{self.model_name}")
+        max_tokens = model_info.input_token_limit
+
+        if token_count > max_tokens:
+            raise TokenLimitExceededError(
+                f"Token limit exceeded: {token_count} > {max_tokens}"
             )
 
         try:
