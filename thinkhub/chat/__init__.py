@@ -20,11 +20,13 @@ logger = logging.getLogger(__name__)
 _CHAT_SERVICES: dict[str, str] = {
     "openai": "thinkhub.chat.openai_chat.OpenAIChatService",
     "anthropic": "thinkhub.chat.anthropic_chat.AnthropicChatService",
+    "google-generativeai": "thinkhub.chat.gemini_chat.GeminiChatService",
 }
 
 _REQUIRED_DEPENDENCIES: dict[str, list[str]] = {
     "openai": ["openai", "tiktoken"],
     "anthropic": ["anthropic"],
+    "google-generativeai": ["google.generativeai", "PIL"],
 }
 
 
