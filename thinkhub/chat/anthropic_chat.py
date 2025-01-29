@@ -148,12 +148,12 @@ class AnthropicChatService(ChatServiceInterface):
 
             # Stream response
             full_response_chunks = []
-            async with await self._safe_api_call(**api_payload) as stream:
-                async for event in stream:
-                    if event.type == "content_block_delta" and event.delta.text:
-                        chunk = event.delta.text
-                        full_response_chunks.append(chunk)
-                        yield chunk
+            stream = await self._safe_api_call(**api_payload)
+            async for event in stream:
+                if event.type == "content_block_delta" and event.delta.text:
+                    chunk = event.delta.text
+                    full_response_chunks.append(chunk)
+                    yield chunk
 
             # Update context
             full_response = "".join(full_response_chunks)
