@@ -17,7 +17,12 @@ from thinkhub.chat.exceptions import (
     InvalidInputDataError,
     TokenLimitExceededError,
 )
-from thinkhub.utils import api_retry, get_api_key, setup_logging, validate_image_input
+from thinkhub.chat.utils import (
+    api_retry,
+    get_api_key,
+    setup_logging,
+    validate_image_input,
+)
 from thinkhub.utils import encode_image as utils_encode_image
 
 
