@@ -14,7 +14,7 @@ from thinkhub.transcription.exceptions import MissingAPIKeyError
 
 @pytest.fixture
 def mock_genai():
-    """Fixture that provides a mock of the genai library."""
+    """Fixture that provides a mockk of the genai library."""
     with patch("thinkhub.chat.gemini_chat.genai") as mock:
         # Set up mock model info
         mock_model_info = Mock()
