@@ -6,17 +6,21 @@ chat interaction capabilities with Anthropic's language models, supporting
 features like multi-modal input, token management, and robust error handling.
 """
 
-import base64
 import logging
-import os
 from collections.abc import AsyncGenerator
 from typing import Optional, Union
 
 from anthropic import APIConnectionError, AsyncAnthropic, RateLimitError
-from tenacity import retry, stop_after_attempt, wait_exponential
 
 from thinkhub.chat.base import ChatServiceInterface
-from thinkhub.chat.exceptions import InvalidInputDataError, MissingAPIKeyError
+from thinkhub.chat.exceptions import InvalidInputDataError
+from thinkhub.chat.utils import (
+    api_retry,
+    get_api_key,
+    setup_logging,
+    validate_image_input,
+)
+from thinkhub.chat.utils import encode_image as utils_encode_image
 
 
 class AnthropicChatService(ChatServiceInterface):
@@ -38,14 +42,10 @@ class AnthropicChatService(ChatServiceInterface):
             api_key (Optional[str]): Explicit API key for flexible configuration.
             logging_level (int): Logging configuration.
         """
-        # Flexible API key retrieval
-        self.api_key = api_key or os.getenv("ANTHROPIC_API_KEY")
-        if not self.api_key:
-            raise MissingAPIKeyError("No Anthropic API key found.")
+        self.api_key = get_api_key(api_key, "ANTHROPIC_API_KEY")
 
         # Logging setup
-        logging.basicConfig(level=logging_level)
-        self.logger = logging.getLogger(__name__)
+        self.logger = setup_logging(logging_level)
 
         # Client and model configuration
         self.anthropic = AsyncAnthropic(api_key=self.api_key)
@@ -92,9 +92,7 @@ class AnthropicChatService(ChatServiceInterface):
         """Calculate total tokens across all messages."""
         return sum(self._count_tokens(msg.get("content", "")) for msg in self.messages)
 
-    @retry(
-        stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10)
-    )
+    @api_retry()
     async def _safe_api_call(self, **kwargs):
         """Safe API call with retry and logging."""
         try:
@@ -104,10 +102,20 @@ class AnthropicChatService(ChatServiceInterface):
             raise
 
     def encode_image(self, image_path: str) -> str:
-        """Robust image encoding with enhanced error handling."""
+        """
+        Encode an image into a base64 string.
+
+        Args:
+            image_path (str): Path to the image file.
+
+        Returns:
+            str: Base64-encoded string of the image.
+
+        Raises:
+            InvalidInputDataError: If the image cannot be encoded.
+        """
         try:
-            with open(image_path, "rb") as image_file:
-                return base64.b64encode(image_file.read()).decode("utf-8")
+            return utils_encode_image(image_path)
         except OSError as e:
             self.logger.error(f"Image encoding failed: {e}")
             raise InvalidInputDataError(f"Failed to encode image: {e}")
@@ -164,10 +172,7 @@ class AnthropicChatService(ChatServiceInterface):
             yield f"[Error: {e!s}]"
 
     def _validate_image_input(self, input_data: list[dict[str, str]]) -> bool:
-        """Validate multi-modal input structure."""
-        return isinstance(input_data, list) and all(
-            isinstance(item, dict) and "image_path" in item for item in input_data
-        )
+        return validate_image_input(input_data)
 
     def _prepare_image_messages(
         self, input_data: list[dict[str, str]]

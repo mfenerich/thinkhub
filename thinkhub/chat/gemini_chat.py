@@ -7,17 +7,20 @@ features like multi-modal input, token management, and robust error handling.
 """
 
 import logging
-import os
 from collections.abc import AsyncGenerator
 from typing import Optional, Union
 
 import google.generativeai as genai
 from PIL import Image
-from tenacity import retry, stop_after_attempt, wait_exponential
 
 from thinkhub.chat.base import ChatServiceInterface
 from thinkhub.chat.exceptions import InvalidInputDataError, TokenLimitExceededError
-from thinkhub.transcription.exceptions import MissingAPIKeyError
+from thinkhub.chat.utils import (
+    api_retry,
+    get_api_key,
+    setup_logging,
+    validate_image_input,
+)
 
 
 class GeminiChatService(ChatServiceInterface):
@@ -37,14 +40,8 @@ class GeminiChatService(ChatServiceInterface):
             api_key (Optional[str]): Explicit API key for flexible configuration.
             logging_level (int): Logging configuration.
         """
-        # Flexible API key retrieval
-        self.api_key = api_key or os.getenv("GEMINI_API_KEY")
-        if not self.api_key:
-            raise MissingAPIKeyError("No Gemini API key found.")
-
-        # Logging setup
-        logging.basicConfig(level=logging_level)
-        self.logger = logging.getLogger(__name__)
+        self.api_key = get_api_key(api_key, "GEMINI_API_KEY")
+        self.logger = setup_logging(logging_level)
 
         # Client and model configuration
         genai.configure(api_key=self.api_key)
@@ -82,10 +79,7 @@ class GeminiChatService(ChatServiceInterface):
                 )
 
     def _validate_image_input(self, input_data: list[dict[str, str]]) -> bool:
-        """Validate multi-modal input structure."""
-        return isinstance(input_data, list) and all(
-            isinstance(item, dict) and "image_path" in item for item in input_data
-        )
+        return validate_image_input(input_data)
 
     async def _count_tokens(self, contents) -> int:
         """
@@ -116,9 +110,7 @@ class GeminiChatService(ChatServiceInterface):
                 raise InvalidInputDataError(f"Failed to open image: {image_path}\n{e}")
         return parts
 
-    @retry(
-        stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10)
-    )
+    @api_retry()
     async def _safe_api_call(self, prompt: Union[str, list]):
         """Safe API call with retry and logging."""
         try:

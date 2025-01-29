@@ -5,21 +5,26 @@ to generate chat responses asynchronously. It supports both text and image input
 and streams responses back to the user in chunks.
 """
 
-import base64
 import logging
-import os
 from collections.abc import AsyncGenerator
 from typing import Optional, Union
 
 import tiktoken
 from openai import APIConnectionError, AsyncOpenAI, RateLimitError
-from tenacity import retry, stop_after_attempt, wait_exponential
 
 from thinkhub.chat.base import ChatServiceInterface
 from thinkhub.chat.exceptions import (
     InvalidInputDataError,
-    MissingAPIKeyError,
     TokenLimitExceededError,
+)
+from thinkhub.chat.utils import (
+    api_retry,
+    get_api_key,
+    setup_logging,
+    validate_image_input,
+)
+from thinkhub.chat.utils import (
+    encode_image as utils_encode_image,
 )
 
 
@@ -49,14 +54,8 @@ class OpenAIChatService(ChatServiceInterface):
             api_key (Optional[str]): Explicit API key for flexible configuration.
             logging_level (int): Logging configuration.
         """
-        # Flexible API key retrieval
-        self.api_key = api_key or os.getenv("CHATGPT_API_KEY")
-        if not self.api_key:
-            raise MissingAPIKeyError("No OpenAI API key found.")
-
-        # Logging setup
-        logging.basicConfig(level=logging_level)
-        self.logger = logging.getLogger(__name__)
+        self.api_key = get_api_key(api_key, "CHATGPT_API_KEY")
+        self.logger = setup_logging(logging_level)
 
         # Client and model configuration
         self.openai = AsyncOpenAI(api_key=self.api_key)
@@ -111,9 +110,7 @@ class OpenAIChatService(ChatServiceInterface):
         """Calculate total tokens across all messages."""
         return sum(self._count_tokens(msg.get("content", "")) for msg in self.messages)
 
-    @retry(
-        stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10)
-    )
+    @api_retry()
     async def _safe_api_call(self, **kwargs):
         """Safe API call with retry and logging."""
         try:
@@ -123,10 +120,9 @@ class OpenAIChatService(ChatServiceInterface):
             raise
 
     def encode_image(self, image_path: str) -> str:
-        """Robust image encoding with enhanced error handling."""
+        """Image encoding using base64 encoding."""
         try:
-            with open(image_path, "rb") as image_file:
-                return base64.b64encode(image_file.read()).decode("utf-8")
+            return utils_encode_image(image_path)
         except OSError as e:
             self.logger.error(f"Image encoding failed: {e}")
             raise InvalidInputDataError(f"Failed to encode image: {e}")
@@ -186,9 +182,7 @@ class OpenAIChatService(ChatServiceInterface):
 
     def _validate_image_input(self, input_data: list[dict[str, str]]) -> bool:
         """Validate multi-modal input structure."""
-        return isinstance(input_data, list) and all(
-            isinstance(item, dict) and "image_path" in item for item in input_data
-        )
+        return validate_image_input(input_data)
 
     def _prepare_image_messages(
         self, input_data: list[dict[str, str]]

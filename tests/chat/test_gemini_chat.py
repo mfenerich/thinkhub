@@ -7,9 +7,12 @@ import pytest
 import tenacity
 from PIL import Image
 
-from thinkhub.chat.exceptions import InvalidInputDataError, TokenLimitExceededError
+from thinkhub.chat.exceptions import (
+    InvalidInputDataError,
+    MissingAPIKeyError,
+    TokenLimitExceededError,
+)
 from thinkhub.chat.gemini_chat import GeminiChatService
-from thinkhub.transcription.exceptions import MissingAPIKeyError
 
 
 @pytest.fixture
