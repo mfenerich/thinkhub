@@ -82,7 +82,7 @@ ThinkHub uses a lazy-loading strategy to optimize memory usage and avoid install
        pip install thinkhub[anthropic]
        ```
 
-    - **Gemini Chat**:
+  - **Gemini Chat**:
      - **Poetry**:
        ```bash
        poetry add thinkhub --extras google-generativeai
