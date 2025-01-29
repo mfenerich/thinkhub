@@ -5,29 +5,20 @@ to generate chat responses asynchronously. It supports both text and image input
 and streams responses back to the user in chunks.
 """
 
-import base64
 import logging
-import os
 from collections.abc import AsyncGenerator
 from typing import Optional, Union
 
 import tiktoken
 from openai import APIConnectionError, AsyncOpenAI, RateLimitError
-from tenacity import retry, stop_after_attempt, wait_exponential
 
 from thinkhub.chat.base import ChatServiceInterface
 from thinkhub.chat.exceptions import (
     InvalidInputDataError,
-    MissingAPIKeyError,
     TokenLimitExceededError,
 )
-from thinkhub.utils import (
-    api_retry,
-    encode_image as utils_encode_image,
-    validate_image_input,
-    get_api_key,
-    setup_logging
-)
+from thinkhub.utils import api_retry, get_api_key, setup_logging, validate_image_input
+from thinkhub.utils import encode_image as utils_encode_image
 
 
 class OpenAIChatService(ChatServiceInterface):
@@ -120,7 +111,7 @@ class OpenAIChatService(ChatServiceInterface):
         except (RateLimitError, APIConnectionError) as e:
             self.logger.error(f"API call failed: {e}")
             raise
-        
+
     def encode_image(self, image_path: str) -> str:
         """Image encoding using base64 encoding."""
         try:
@@ -181,7 +172,7 @@ class OpenAIChatService(ChatServiceInterface):
         except Exception as e:
             self.logger.error(f"Chat response generation failed: {e}")
             yield f"[Error: {e!s}]"
-    
+
     def _validate_image_input(self, input_data: list[dict[str, str]]) -> bool:
         """Validate multi-modal input structure."""
         return validate_image_input(input_data)
