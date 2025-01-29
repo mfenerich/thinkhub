@@ -9,7 +9,7 @@ from PIL import Image
 
 from thinkhub.chat.exceptions import InvalidInputDataError, TokenLimitExceededError
 from thinkhub.chat.gemini_chat import GeminiChatService
-from thinkhub.transcription.exceptions import MissingAPIKeyError
+from thinkhub.chat.exceptions import MissingAPIKeyError
 
 
 @pytest.fixture
