@@ -223,6 +223,16 @@ except ProviderNotFoundError as e:
 
 ---
 
+## Supported Providers
+
+| Provider                                                                 | Completion | Streaming | Async Completion | Async Streaming | Async Embedding | Async Image Generation |
+|--------------------------------------------------------------------------|------------|------------|------------------|-----------------|-----------------|---------------------|
+| [OpenAI](https://platform.openai.com/docs/overview)                      | ❌         | ❌         | ❌               | ✅               | ❌               | ❌                  |
+| [Google Gemini](https://ai.google.dev/)                                  | ❌         | ❌         | ❌               | ✅               | ❌               | ❌                  |
+| [Anthropic - Claude.ai](https://www.anthropic.com/api)                   | ❌         | ❌         | ❌               | ✅               | ❌               | ❌                  |
+
+---
+
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
