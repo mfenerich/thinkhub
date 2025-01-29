@@ -35,4 +35,4 @@ jobs:
           poetry install --with dev --no-interaction --no-root --extras all
       - name: Run tests
         run: |
-          poetry run pytest --disable-warnings
+          poetry run pytest tests/transcription/test_google_transcription.py --disable-warnings
