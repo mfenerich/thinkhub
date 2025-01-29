@@ -26,9 +26,12 @@ ThinkHub is a Python-based framework that provides a unified interface for inter
 ### **Chat**
 - **OpenAI**: Supporting models like `gpt-4` and `gpt-3.5`.
 - **Anthropic**: Supporting `Claude.ai`.
+- **Gemini**: Supporting `Google Gemini`.
 
 ### **Image Processing**
 - **OpenAI**: Analyze and process images with AI models.
+- **Anthropic**: Analyze and process images with AI models.
+- **Gemini**: Analyze and process images with AI models.
 
 ---
 
@@ -77,6 +80,16 @@ ThinkHub uses a lazy-loading strategy to optimize memory usage and avoid install
      - **pip**:
        ```bash
        pip install thinkhub[anthropic]
+       ```
+
+    - **Gemini Chat**:
+     - **Poetry**:
+       ```bash
+       poetry add thinkhub --extras google-generativeai
+       ```
+     - **pip**:
+       ```bash
+       pip install thinkhub[google-generativeai]
        ```
 
    - **Multiple Services** (e.g., OpenAI and Anthropic):
