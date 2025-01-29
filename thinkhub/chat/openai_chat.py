@@ -23,7 +23,9 @@ from thinkhub.chat.utils import (
     setup_logging,
     validate_image_input,
 )
-from thinkhub.utils import encode_image as utils_encode_image
+from thinkhub.chat.utils import (
+    encode_image as utils_encode_image,
+)
 
 
 class OpenAIChatService(ChatServiceInterface):
