@@ -23,15 +23,11 @@ ThinkHub is a Python-based framework that provides a unified interface for inter
 - **OpenAI**: Using the `whisper-1` model.
 - **Google Speech-to-Text**
 
-### **Chat**
-- **OpenAI**: Supporting models like `gpt-4` and `gpt-3.5`.
-- **Anthropic**: Supporting `Claude.ai`.
-- **Gemini**: Supporting `Google Gemini`.
-
-### **Image Processing**
-- **OpenAI**: Analyze and process images with AI models.
-- **Anthropic**: Analyze and process images with AI models.
-- **Gemini**: Analyze and process images with AI models.
+| Provider                                                                 | Completion | Streaming | Async Completion | Async Streaming | Async Embedding | Async Image Generation | Image Input |
+|--------------------------------------------------------------------------|------------|------------|------------------|-----------------|-----------------|---------------------|-------------|
+| [OpenAI](https://platform.openai.com/docs/overview)                      | ❌         | ❌         | ❌               | ✅               | ❌               | ❌                  | ✅           |
+| [Google Gemini](https://ai.google.dev/)                                  | ❌         | ❌         | ❌               | ✅               | ❌               | ❌                  | ✅           |
+| [Anthropic - Claude.ai](https://www.anthropic.com/api)                   | ❌         | ❌         | ❌               | ✅               | ❌               | ❌                  | ✅           |
 
 ---
 
@@ -220,16 +216,6 @@ except ProviderNotFoundError as e:
    ```bash
    poetry build
    ```
-
----
-
-## Supported Providers
-
-| Provider                                                                 | Completion | Streaming | Async Completion | Async Streaming | Async Embedding | Async Image Generation |
-|--------------------------------------------------------------------------|------------|------------|------------------|-----------------|-----------------|---------------------|
-| [OpenAI](https://platform.openai.com/docs/overview)                      | ❌         | ❌         | ❌               | ✅               | ❌               | ❌                  |
-| [Google Gemini](https://ai.google.dev/)                                  | ❌         | ❌         | ❌               | ✅               | ❌               | ❌                  |
-| [Anthropic - Claude.ai](https://www.anthropic.com/api)                   | ❌         | ❌         | ❌               | ✅               | ❌               | ❌                  |
 
 ---
 
