@@ -3,7 +3,7 @@
 
 ![ThinkHub Logo](assets/logo.png)
 
-ThinkHub is a Python-based framework that provides a unified interface for interacting with multiple AI services. Designed for extensibility, users can integrate new services by creating and registering their own plugins or classes. The project simplifies configurations, supports multiple providers, and prioritizes user-friendly customization.
+ThinkHub is a lightweight Python package designed for small and simple projects or for quickly testing LLM services. It provides a unified interface for interacting with multiple AI providers, making it easy to configure and switch between different services. Built with extensibility in mind, users can effortlessly integrate new providers by creating and registering their own plugins or classes. ThinkHub prioritizes simplicity, flexibility, and user-friendly customization, making it an ideal tool for rapid prototyping and experimentation with AI models.
 
 ## Key Features
 
@@ -209,7 +209,7 @@ except ProviderNotFoundError as e:
 
 2. **Code Linting:**
    ```bash
-   poetry run ruff check .
+   poetry run pre-commit run -a
    ```
 
 3. **Build the Project:**
