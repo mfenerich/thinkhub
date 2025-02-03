@@ -8,7 +8,7 @@ features like multi-modal input, token management, and robust error handling.
 
 import logging
 from collections.abc import AsyncGenerator
-from typing import Any, Optional, Union
+from typing import Optional, Union
 
 from anthropic import Anthropic, APIConnectionError, AsyncAnthropic, RateLimitError
 
@@ -53,10 +53,10 @@ class AnthropicChatService(ChatServiceInterface):
         self.MAX_TOKENS = max_tokens
 
         # Message context management
-        self.conversation_history: list[dict[str, Any]] = []
+        self.conversation_history: list[dict[str, any]] = []
         self.system_prompt: Optional[str] = None
 
-    def _count_tokens(self, content: Any) -> int:
+    def _count_tokens(self, content: any) -> int:
         """Perform synchronous token counting method."""
         try:
             # Sanitize content if it is a list of message dictionaries.
@@ -206,7 +206,7 @@ class AnthropicChatService(ChatServiceInterface):
 
     def _prepare_image_messages(
         self, input_data: list[dict[str, str]]
-    ) -> list[dict[str, Any]]:
+    ) -> list[dict[str, any]]:
         """Prepare multi-modal messages with image processing."""
         image_contents = []
         for item in input_data:
