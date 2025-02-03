@@ -133,34 +133,38 @@ class OpenAIChatService(ChatServiceInterface):
         system_prompt: Optional[str] = "You are a helpful assistant.",
     ) -> AsyncGenerator[str, None]:
         """Advanced streaming chat response with multi-modal support."""
-        # Validate and prepare input
+        # Validate input
         if not input_data:
             return
 
-        # Manage system prompt
-        self.system_prompt = system_prompt
+        # Ensure the system prompt is included once at the beginning of the conversation.
+        if system_prompt and not any(
+            msg.get("role") == "system" for msg in self.messages
+        ):
+            self.messages.insert(0, {"role": "system", "content": system_prompt})
+            self.system_prompt = system_prompt
 
-        # Prepare API payload
+        # Append the new user or image message to the conversation history.
+        if isinstance(input_data, str):
+            self.messages.append({"role": "user", "content": input_data})
+        elif self._validate_image_input(input_data):
+            image_messages = self._prepare_image_messages(input_data)
+            self.messages.extend(image_messages)
+        else:
+            raise InvalidInputDataError("Invalid input format")
+
+        # Prune conversation history if token limit exceeded.
+        self._manage_context_window()
+
+        # Build API payload with the entire conversation history.
         api_payload = {
             "model": self.model,
             "max_tokens": self.MAX_TOKENS,
-            "messages": [],
+            "messages": self.messages,
             "stream": True,
         }
 
-        # Process input data
         try:
-            if isinstance(input_data, str):
-                api_payload["messages"].append({"role": "user", "content": input_data})
-            elif self._validate_image_input(input_data):
-                api_payload["messages"] = self._prepare_image_messages(input_data)
-            else:
-                raise InvalidInputDataError("Invalid input format")
-
-            # Manage context window
-            self._manage_context_window()
-
-            # Stream response
             full_response_chunks = []
             async with await self._safe_api_call(**api_payload) as stream:
                 async for event in stream:
@@ -169,8 +173,8 @@ class OpenAIChatService(ChatServiceInterface):
                         full_response_chunks.append(chunk)
                         yield chunk
 
-            # Update context
             full_response = "".join(full_response_chunks)
+            # Append the assistant's reply to the conversation history.
             self.messages.append({"role": "assistant", "content": full_response})
 
         except TokenLimitExceededError as e:
