@@ -24,7 +24,7 @@ from thinkhub.chat.utils import encode_image as utils_encode_image
 
 
 class AnthropicChatService(ChatServiceInterface):
-    """Enhanced Anthropic Chat Service with advanced features."""
+    """Chat Service with advanced features and conversation history."""
 
     def __init__(
         self,
@@ -53,7 +53,7 @@ class AnthropicChatService(ChatServiceInterface):
         self.MAX_TOKENS = max_tokens
 
         # Message context management
-        self.messages: list[dict[str, any]] = []
+        self.conversation_history: list[dict[str, any]] = []
         self.system_prompt: Optional[str] = None
 
     def _count_tokens(self, content: any) -> int:
@@ -81,16 +81,40 @@ class AnthropicChatService(ChatServiceInterface):
         """
         Intelligent context window management.
 
-        Removes messages strategically to maintain context.
+        Removes messages strategically to maintain context while preserving recent interactions.
         """
-        while self._total_tokens() > self.MAX_TOKENS and len(self.messages) > 1:
-            # Prioritize removing older user messages first
-            removed = self.messages.pop(1)
-            self.logger.info(f"Removed message to manage token limit: {removed}")
+        while (
+            self._total_tokens() > self.MAX_TOKENS
+            and len(self.conversation_history) > 2
+        ):
+            # Always keep the most recent system and user message
+            self.conversation_history.pop(1)
+            self.logger.info("Removed an older message to manage token limit")
 
     def _total_tokens(self) -> int:
         """Calculate total tokens across all messages."""
-        return sum(self._count_tokens(msg.get("content", "")) for msg in self.messages)
+        return sum(
+            self._count_tokens(msg.get("content", ""))
+            for msg in self.conversation_history
+        )
+
+    def add_user_message(self, message: str):
+        """
+        Add a user message to the conversation history.
+
+        Args:
+            message (str): The user's input message.
+        """
+        self.conversation_history.append({"role": "user", "content": message})
+
+    def add_assistant_message(self, message: str):
+        """
+        Add an assistant message to the conversation history.
+
+        Args:
+            message (str): The assistant's response message.
+        """
+        self.conversation_history.append({"role": "assistant", "content": message})
 
     @api_retry()
     async def _safe_api_call(self, **kwargs):
@@ -125,7 +149,7 @@ class AnthropicChatService(ChatServiceInterface):
         input_data: Union[str, list[dict[str, str]]],
         system_prompt: Optional[str] = "You are a helpful assistant.",
     ) -> AsyncGenerator[str, None]:
-        """Advanced streaming chat response with multi-modal support."""
+        """Advanced streaming chat response with multi-modal support and conversation history."""
         # Validate and prepare input
         if not input_data:
             return
@@ -138,16 +162,19 @@ class AnthropicChatService(ChatServiceInterface):
             "model": self.model,
             "max_tokens": self.MAX_TOKENS,
             "system": self.system_prompt,
-            "messages": [],
+            "messages": self.conversation_history.copy(),
             "stream": True,
         }
 
         # Process input data
         try:
             if isinstance(input_data, str):
+                self.add_user_message(input_data)
                 api_payload["messages"].append({"role": "user", "content": input_data})
             elif self._validate_image_input(input_data):
-                api_payload["messages"] = self._prepare_image_messages(input_data)
+                image_messages = self._prepare_image_messages(input_data)
+                self.conversation_history.extend(image_messages)
+                api_payload["messages"].extend(image_messages)
             else:
                 raise InvalidInputDataError("Invalid input format")
 
@@ -163,9 +190,9 @@ class AnthropicChatService(ChatServiceInterface):
                     full_response_chunks.append(chunk)
                     yield chunk
 
-            # Update context
+            # Update context with full response
             full_response = "".join(full_response_chunks)
-            self.messages.append({"role": "assistant", "content": full_response})
+            self.add_assistant_message(full_response)
 
         except Exception as e:
             self.logger.error(f"Chat response generation failed: {e}")
