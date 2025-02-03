@@ -8,9 +8,9 @@ features like multi-modal input, token management, and robust error handling.
 
 import logging
 from collections.abc import AsyncGenerator
-from typing import Optional, Union
+from typing import Any, Optional, Union
 
-from anthropic import APIConnectionError, AsyncAnthropic, RateLimitError
+from anthropic import Anthropic, APIConnectionError, AsyncAnthropic, RateLimitError
 
 from thinkhub.chat.base import ChatServiceInterface
 from thinkhub.chat.exceptions import InvalidInputDataError
@@ -43,23 +43,23 @@ class AnthropicChatService(ChatServiceInterface):
             logging_level (int): Logging configuration.
         """
         self.api_key = get_api_key(api_key, "ANTHROPIC_API_KEY")
-
-        # Logging setup
         self.logger = setup_logging(logging_level)
 
-        # Client and model configuration
+        # Instantiate both asynchronous and synchronous clients once
         self.anthropic = AsyncAnthropic(api_key=self.api_key)
+        self.sync_anthropic = Anthropic(api_key=self.api_key)
+
         self.model = model
         self.MAX_TOKENS = max_tokens
 
         # Message context management
-        self.conversation_history: list[dict[str, any]] = []
+        self.conversation_history: list[dict[str, Any]] = []
         self.system_prompt: Optional[str] = None
 
-    def _count_tokens(self, content: any) -> int:
-        """Token counting using Anthropic's message token estimation."""
+    def _count_tokens(self, content: Any) -> int:
+        """Perform synchronous token counting method."""
         try:
-            # Sanitize content
+            # Sanitize content if it is a list of message dictionaries.
             if isinstance(content, list):
                 content = " ".join(
                     str(item.get("text", ""))
@@ -67,14 +67,17 @@ class AnthropicChatService(ChatServiceInterface):
                     if isinstance(item, dict)
                 )
 
-            # Estimate tokens for the content
-            return self.anthropic.messages.estimate_tokens(
-                model=self.model, messages=[{"role": "user", "content": str(content)}]
-            )
+            # Use the pre-instantiated synchronous client for token counting.
+            try:
+                return self.sync_anthropic.messages.count_tokens(
+                    model=self.model,
+                    messages=[{"role": "user", "content": str(content)}],
+                )
+            except Exception:
+                self.logger.warning("Falling back to word-based token estimation")
+                return len(str(content).split())
         except Exception as e:
-            self.logger.warning(
-                f"Token counting failed: {e}. Falling back to word-based estimation."
-            )
+            self.logger.error(f"Token counting failed: {e}")
             return len(str(content).split())
 
     def _manage_context_window(self):
@@ -92,11 +95,15 @@ class AnthropicChatService(ChatServiceInterface):
             self.logger.info("Removed an older message to manage token limit")
 
     def _total_tokens(self) -> int:
-        """Calculate total tokens across all messages."""
-        return sum(
-            self._count_tokens(msg.get("content", ""))
-            for msg in self.conversation_history
-        )
+        """Calculate total tokens more reliably."""
+        token_count = 0
+        for msg in self.conversation_history:
+            content = msg.get("content", "")
+            # Rough estimation based on word count
+            if isinstance(content, list):
+                content = " ".join(str(item.get("text", "")) for item in content)
+            token_count += len(str(content).split())
+        return token_count
 
     def add_user_message(self, message: str):
         """
@@ -154,7 +161,6 @@ class AnthropicChatService(ChatServiceInterface):
         if not input_data:
             return
 
-        # Manage system prompt
         self.system_prompt = system_prompt
 
         # Prepare API payload
@@ -166,7 +172,6 @@ class AnthropicChatService(ChatServiceInterface):
             "stream": True,
         }
 
-        # Process input data
         try:
             if isinstance(input_data, str):
                 self.add_user_message(input_data)
@@ -178,10 +183,8 @@ class AnthropicChatService(ChatServiceInterface):
             else:
                 raise InvalidInputDataError("Invalid input format")
 
-            # Manage context window
             self._manage_context_window()
 
-            # Stream response
             full_response_chunks = []
             stream = await self._safe_api_call(**api_payload)
             async for event in stream:
@@ -190,7 +193,6 @@ class AnthropicChatService(ChatServiceInterface):
                     full_response_chunks.append(chunk)
                     yield chunk
 
-            # Update context with full response
             full_response = "".join(full_response_chunks)
             self.add_assistant_message(full_response)
 
@@ -199,11 +201,12 @@ class AnthropicChatService(ChatServiceInterface):
             yield f"[Error: {e!s}]"
 
     def _validate_image_input(self, input_data: list[dict[str, str]]) -> bool:
+        """Validate the format of the image input."""
         return validate_image_input(input_data)
 
     def _prepare_image_messages(
         self, input_data: list[dict[str, str]]
-    ) -> list[dict[str, any]]:
+    ) -> list[dict[str, Any]]:
         """Prepare multi-modal messages with image processing."""
         image_contents = []
         for item in input_data:
