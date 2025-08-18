@@ -19,7 +19,7 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Python Environment
         uses: ./.github/actions/setup-environment
@@ -65,7 +65,7 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Python Environment
         uses: ./.github/actions/setup-environment
